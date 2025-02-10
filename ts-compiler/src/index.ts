@@ -4,6 +4,10 @@ const EOF = '\0'
 const OPERATORS: readonly string[] = ["+", "-"];
 const DIGITS = Array.from(String(1234567890));
 
+const isWhitespace = (char: string) => {
+  return /\s/.test(char)
+}
+
 const isOperator = (char: string): char is Operator => {
   return OPERATORS.includes(char)
 }
@@ -38,6 +42,32 @@ const parseOperands = (first: unknown, second: unknown): number[] => {
 
 
 const parseArgument = (argument: string): number => {
+  const trimmedArgument = argument.trim()
+  for (let i = 0; i < trimmedArgument.length; i++) {
+    const char = trimmedArgument[i];
+    if (isWhitespace(char)) {
+      const charBefore = trimmedArgument[i - 1];
+      let charAfterIdx;
+      for (let j = i + 1; j < trimmedArgument.length; j++) {
+        if (!isWhitespace(trimmedArgument[j])) {
+          charAfterIdx = j;
+          break;
+        }
+      }
+
+      if (!charAfterIdx) {
+        throw new Error("Inconsistent trimmed argument error.")
+      }
+      
+      const charAfter = trimmedArgument[charAfterIdx];
+      if ((isOperator(charBefore) && isOperator(charAfter)) || (isDigit(charBefore) && isDigit(charAfter))) {
+        throw new Error("Bad argument.")
+      }
+
+      i = charAfterIdx - 1;
+    }
+  }
+
   const strippedArgument = argument.replace(/\s+/g, '')
 
   let scan = '';
