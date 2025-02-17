@@ -61,6 +61,10 @@ export class Tokenizer {
       } else break;
     }
 
+    if (tokenValue.trim() === "") {
+      throw new Error("Invalid input.");
+    }
+
     return new Token({ type: "INT", value: Number(tokenValue) });
   }
 
