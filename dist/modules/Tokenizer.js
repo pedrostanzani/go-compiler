@@ -53,6 +53,9 @@ class Tokenizer {
             else
                 break;
         }
+        if (tokenValue.trim() === "") {
+            throw new Error("Invalid input.");
+        }
         return new Token_1.Token({ type: "INT", value: Number(tokenValue) });
     }
     selectNext() {
