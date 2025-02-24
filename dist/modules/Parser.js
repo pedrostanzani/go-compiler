@@ -4,50 +4,53 @@ exports.Parser = void 0;
 const Tokenizer_1 = require("./Tokenizer");
 class Parser {
     static tokenizer;
+    static throwUnexpectedToken() {
+        const nextToken = this.tokenizer.getNext();
+        if (nextToken.type === "EOF") {
+            throw new Error("Premature EOF.");
+        }
+        else
+            throw new Error("Unexpected non-integer token.");
+    }
     static parseExpression() {
         let result = 0;
-        let nextToken;
-        nextToken = this.tokenizer.getNext();
+        let nextToken = this.tokenizer.getNext();
         if (nextToken.getType() === "INT") {
             result = nextToken.getValue();
-            this.tokenizer.selectNext();
-            nextToken = this.tokenizer.getNext();
+            nextToken = this.tokenizer.fetchAndSelectNext();
             while (nextToken.type === "MINUS" || nextToken.type === "PLUS") {
                 if (nextToken.type === "PLUS") {
-                    this.tokenizer.selectNext();
-                    nextToken = this.tokenizer.getNext();
+                    nextToken = this.tokenizer.fetchAndSelectNext();
                     if (nextToken.type === "INT") {
                         result += nextToken.value;
                     }
-                    else {
-                        throw new Error("Could not parse expression.");
-                    }
+                    else
+                        this.throwUnexpectedToken();
                 }
                 else {
-                    this.tokenizer.selectNext();
-                    nextToken = this.tokenizer.getNext();
+                    nextToken = this.tokenizer.fetchAndSelectNext();
                     if (nextToken.type === "INT") {
                         result -= nextToken.value;
                     }
-                    else {
-                        throw new Error("Could not parse expression.");
-                    }
+                    else
+                        this.throwUnexpectedToken();
                 }
-                this.tokenizer.selectNext();
-                nextToken = this.tokenizer.getNext();
+                nextToken = this.tokenizer.fetchAndSelectNext();
             }
-            if (nextToken.getType() !== "EOF") {
-                throw new Error("Extra input after valid expression.");
-            }
-            return result;
         }
         else {
-            throw new Error("Could not parse expression.");
+            this.throwUnexpectedToken();
         }
+        return result;
     }
     static run(sourceCode) {
         this.tokenizer = new Tokenizer_1.Tokenizer({ source: sourceCode, position: 0 });
-        return this.parseExpression();
+        let result = this.parseExpression();
+        const nextToken = this.tokenizer.getNext();
+        if (nextToken.getType() !== "EOF") {
+            throw new Error("Could not detect EOF.");
+        }
+        return result;
     }
 }
 exports.Parser = Parser;

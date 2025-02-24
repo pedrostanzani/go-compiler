@@ -1,1 +1,1 @@
-export type TokenType = "INT" | "PLUS" | "MINUS" | "EOF";
+export type TokenType = "INT" | "PLUS" | "MINUS" | "X" | "DIVIDE" | "EOF";

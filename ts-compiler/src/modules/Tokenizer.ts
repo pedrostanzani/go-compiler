@@ -1,5 +1,6 @@
-import { isDigit } from "../lib/utils";
 import { Token } from "./Token";
+import { isDigit, isWhitespace } from "../lib/utils";
+import { CommonTokens } from "../lib/enums";
 
 export class Tokenizer {
   private source: string;
@@ -9,49 +10,22 @@ export class Tokenizer {
   constructor({ source, position }: { source: string; position: number }) {
     this.source = source;
     this.position = position;
-    this.next = this.extractNextTokenFromSource();
-  }
-
-  getSource() {
-    return this.source;
-  }
-
-  getPosition() {
-    return this.position;
+    this.next = this.extractToken();
   }
 
   getNext() {
     return this.next;
   }
 
-  skipWhitespace(): void {
+  private skipWhitespace(): void {
     const char = this.source[this.position];
-    if (char === " ") {
+    if (isWhitespace(char)) {
       this.position++;
       return this.skipWhitespace();
     }
   }
 
-  extractNextTokenFromSource(): Token {
-    if (this.position >= this.source.length) {
-      return new Token({ type: "EOF", value: 0 });
-    }
-
-    // Skip whitespace characters
-    this.skipWhitespace();
-
-    const char = this.source[this.position];
-
-    if (char === "+") {
-      this.position++;
-      return new Token({ type: "PLUS", value: 0 });
-    }
-
-    if (char === "-") {
-      this.position++;
-      return new Token({ type: "MINUS", value: 0 });
-    }
-
+  private extractDigitSequence(): string {
     let tokenValue = "";
     for (let i = this.position; i < this.source.length; i++) {
       const char = this.source[i];
@@ -61,14 +35,55 @@ export class Tokenizer {
       } else break;
     }
 
-    if (tokenValue.trim() === "") {
-      throw new Error("Invalid input.");
-    }
-
-    return new Token({ type: "INT", value: Number(tokenValue) });
+    return tokenValue;
   }
 
-  selectNext() {
-    this.next = this.extractNextTokenFromSource();
+  private extractToken(): Token {
+    // Skip all whitespace tokens recursively
+    this.skipWhitespace();
+
+    // Detect if the next token is EOF
+    if (this.position >= this.source.length) {
+      return new Token({ type: "EOF", value: 0 });
+    }
+
+    // Detect common tokens
+    const char = this.source[this.position];
+    switch (char) {
+      case CommonTokens.PLUS:
+        this.position++;
+        return new Token({ type: "PLUS", value: 0 });
+
+      case CommonTokens.MINUS:
+        this.position++;
+        return new Token({ type: "MINUS", value: 0 });
+
+      case CommonTokens.X:
+        this.position++;
+        return new Token({ type: "X", value: 0 });
+
+      case CommonTokens.DIVIDE:
+        this.position++;
+        return new Token({ type: "DIVIDE", value: 0 });
+
+      default:
+        break;
+    }
+
+    if (isDigit(char)) {
+      const digitSequence = this.extractDigitSequence();
+      return new Token({ type: "INT", value: Number(digitSequence) });
+    }
+
+    throw new Error(`Unknown token ${char}`)
+  }
+
+  public selectNext() {
+    this.next = this.extractToken();
+  }
+
+  public fetchAndSelectNext() {
+    this.selectNext();
+    return this.next;
   }
 }

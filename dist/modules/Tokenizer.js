@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Tokenizer = void 0;
-const utils_1 = require("../lib/utils");
 const Token_1 = require("./Token");
+const utils_1 = require("../lib/utils");
+const enums_1 = require("../lib/enums");
 class Tokenizer {
     source;
     position;
@@ -10,39 +11,19 @@ class Tokenizer {
     constructor({ source, position }) {
         this.source = source;
         this.position = position;
-        this.next = this.extractNextTokenFromSource();
-    }
-    getSource() {
-        return this.source;
-    }
-    getPosition() {
-        return this.position;
+        this.next = this.extractToken();
     }
     getNext() {
         return this.next;
     }
     skipWhitespace() {
         const char = this.source[this.position];
-        if (char === " ") {
+        if ((0, utils_1.isWhitespace)(char)) {
             this.position++;
             return this.skipWhitespace();
         }
     }
-    extractNextTokenFromSource() {
-        if (this.position >= this.source.length) {
-            return new Token_1.Token({ type: "EOF", value: 0 });
-        }
-        // Skip whitespace characters
-        this.skipWhitespace();
-        const char = this.source[this.position];
-        if (char === "+") {
-            this.position++;
-            return new Token_1.Token({ type: "PLUS", value: 0 });
-        }
-        if (char === "-") {
-            this.position++;
-            return new Token_1.Token({ type: "MINUS", value: 0 });
-        }
+    extractDigitSequence() {
         let tokenValue = "";
         for (let i = this.position; i < this.source.length; i++) {
             const char = this.source[i];
@@ -53,13 +34,45 @@ class Tokenizer {
             else
                 break;
         }
-        if (tokenValue.trim() === "") {
-            throw new Error("Invalid input.");
+        return tokenValue;
+    }
+    extractToken() {
+        // Skip all whitespace tokens recursively
+        this.skipWhitespace();
+        // Detect if the next token is EOF
+        if (this.position >= this.source.length) {
+            return new Token_1.Token({ type: "EOF", value: 0 });
         }
-        return new Token_1.Token({ type: "INT", value: Number(tokenValue) });
+        // Detect common tokens
+        const char = this.source[this.position];
+        switch (char) {
+            case enums_1.CommonTokens.PLUS:
+                this.position++;
+                return new Token_1.Token({ type: "PLUS", value: 0 });
+            case enums_1.CommonTokens.MINUS:
+                this.position++;
+                return new Token_1.Token({ type: "MINUS", value: 0 });
+            case enums_1.CommonTokens.X:
+                this.position++;
+                return new Token_1.Token({ type: "X", value: 0 });
+            case enums_1.CommonTokens.DIVIDE:
+                this.position++;
+                return new Token_1.Token({ type: "DIVIDE", value: 0 });
+            default:
+                break;
+        }
+        if ((0, utils_1.isDigit)(char)) {
+            const digitSequence = this.extractDigitSequence();
+            return new Token_1.Token({ type: "INT", value: Number(digitSequence) });
+        }
+        throw new Error(`Unknown token ${char}`);
     }
     selectNext() {
-        this.next = this.extractNextTokenFromSource();
+        this.next = this.extractToken();
+    }
+    fetchAndSelectNext() {
+        this.selectNext();
+        return this.next;
     }
 }
 exports.Tokenizer = Tokenizer;
