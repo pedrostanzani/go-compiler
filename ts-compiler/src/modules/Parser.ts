@@ -18,22 +18,22 @@ export class Parser {
 
     if (nextToken.getType() === TokenType.INT) {
       result = nextToken.getValue();
-      nextToken = this.tokenizer.fetchAndSelectNext();
+      nextToken = this.tokenizer.selectNext();
 
       while (nextToken.type === TokenType.X || nextToken.type === TokenType.DIVIDE) {
         if (nextToken.type === TokenType.X) {
-          nextToken = this.tokenizer.fetchAndSelectNext();
+          nextToken = this.tokenizer.selectNext();
           if (nextToken.type === TokenType.INT) {
             result *= nextToken.value;
           } else this.throwUnexpectedToken();
         } else {
-          nextToken = this.tokenizer.fetchAndSelectNext();
+          nextToken = this.tokenizer.selectNext();
           if (nextToken.type === TokenType.INT) {
             result = Math.floor(result / nextToken.value);
           } else this.throwUnexpectedToken();
         }
 
-        nextToken = this.tokenizer.fetchAndSelectNext();
+        nextToken = this.tokenizer.selectNext();
       }
     } else {
       this.throwUnexpectedToken();
@@ -48,10 +48,10 @@ export class Parser {
 
     while (nextToken.type === TokenType.MINUS || nextToken.type === TokenType.PLUS) {
       if (nextToken.type === TokenType.PLUS) {
-        nextToken = this.tokenizer.fetchAndSelectNext();
+        nextToken = this.tokenizer.selectNext();
         result += this.parseTerm();
       } else {
-        nextToken = this.tokenizer.fetchAndSelectNext();
+        nextToken = this.tokenizer.selectNext();
         result -= this.parseTerm();
       }
 

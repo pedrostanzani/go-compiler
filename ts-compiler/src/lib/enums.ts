@@ -8,13 +8,22 @@ export enum TokenType {
   X = "X",
   DIVIDE = "DIVIDE",
 
+  // Brackets
+  OPEN_PAR = 'OPEN_PAR',
+  CLOSE_PAR = 'CLOSE_PAR',
+
   // EOF
   EOF = "EOF"
 }
 
 export enum TokenRepresentation {
+  // Operations
   PLUS = "+",
   MINUS = "-",
   X = "*",
   DIVIDE = "/",
+
+  // Brackets
+  OPEN_PAR = "(",
+  CLOSE_PAR = ")"
 }

@@ -66,6 +66,14 @@ export class Tokenizer {
         this.position++;
         return new Token({ type: TokenType.DIVIDE, value: 0 });
 
+      case TokenRepresentation.OPEN_PAR:
+        this.position++;
+        return new Token({ type: TokenType.OPEN_PAR, value: 0 });
+
+      case TokenRepresentation.CLOSE_PAR:
+        this.position++;
+        return new Token({ type: TokenType.CLOSE_PAR, value: 0 });
+
       default:
         break;
     }
@@ -75,15 +83,11 @@ export class Tokenizer {
       return new Token({ type: TokenType.INT, value: Number(digitSequence) });
     }
 
-    throw new Error(`Unknown token ${char}`)
+    throw new Error(`Unknown token ${char}`);
   }
 
-  private selectNext() {
+  public selectNext() {
     this.next = this.extractToken();
-  }
-
-  public fetchAndSelectNext() {
-    this.selectNext();
     return this.next;
   }
 }
