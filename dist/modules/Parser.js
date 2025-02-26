@@ -53,11 +53,11 @@ class Parser {
             nextToken.type === enums_1.TokenType.DIVIDE) {
             if (nextToken.type === enums_1.TokenType.X) {
                 nextToken = this.tokenizer.selectNext();
-                result *= this.parseTerm();
+                result *= this.parseFactor();
             }
             else {
                 nextToken = this.tokenizer.selectNext();
-                result = Math.floor(result / nextToken.value);
+                result = Math.floor(result / this.parseFactor());
             }
             nextToken = this.tokenizer.getNext();
         }
