@@ -60,10 +60,10 @@ export class Parser {
     ) {
       if (nextToken.type === TokenType.X) {
         nextToken = this.tokenizer.selectNext();
-        result *= this.parseTerm();
+        result *= this.parseFactor();
       } else {
         nextToken = this.tokenizer.selectNext();
-        result = Math.floor(result / nextToken.value);
+        result = Math.floor(result / this.parseFactor());
       }
 
       nextToken = this.tokenizer.getNext();
