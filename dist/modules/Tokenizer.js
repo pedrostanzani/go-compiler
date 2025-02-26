@@ -41,29 +41,29 @@ class Tokenizer {
         this.skipWhitespace();
         // Detect if the next token is EOF
         if (this.position >= this.source.length) {
-            return new Token_1.Token({ type: "EOF", value: 0 });
+            return new Token_1.Token({ type: enums_1.TokenType.EOF, value: 0 });
         }
         // Detect common tokens
         const char = this.source[this.position];
         switch (char) {
-            case enums_1.CommonTokens.PLUS:
+            case enums_1.TokenRepresentation.PLUS:
                 this.position++;
-                return new Token_1.Token({ type: "PLUS", value: 0 });
-            case enums_1.CommonTokens.MINUS:
+                return new Token_1.Token({ type: enums_1.TokenType.PLUS, value: 0 });
+            case enums_1.TokenRepresentation.MINUS:
                 this.position++;
-                return new Token_1.Token({ type: "MINUS", value: 0 });
-            case enums_1.CommonTokens.X:
+                return new Token_1.Token({ type: enums_1.TokenType.MINUS, value: 0 });
+            case enums_1.TokenRepresentation.X:
                 this.position++;
-                return new Token_1.Token({ type: "X", value: 0 });
-            case enums_1.CommonTokens.DIVIDE:
+                return new Token_1.Token({ type: enums_1.TokenType.X, value: 0 });
+            case enums_1.TokenRepresentation.DIVIDE:
                 this.position++;
-                return new Token_1.Token({ type: "DIVIDE", value: 0 });
+                return new Token_1.Token({ type: enums_1.TokenType.DIVIDE, value: 0 });
             default:
                 break;
         }
         if ((0, utils_1.isDigit)(char)) {
             const digitSequence = this.extractDigitSequence();
-            return new Token_1.Token({ type: "INT", value: Number(digitSequence) });
+            return new Token_1.Token({ type: enums_1.TokenType.INT, value: Number(digitSequence) });
         }
         throw new Error(`Unknown token ${char}`);
     }

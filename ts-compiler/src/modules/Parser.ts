@@ -12,7 +12,7 @@ export class Parser {
     } else throw new Error("Unexpected non-integer token.")
   }
 
-  static parseExpression() {
+  static parseTerm() {
     let result = 0;
     let nextToken: Token = this.tokenizer.getNext();
 
@@ -20,16 +20,16 @@ export class Parser {
       result = nextToken.getValue();
       nextToken = this.tokenizer.fetchAndSelectNext();
 
-      while (nextToken.type === TokenType.MINUS || nextToken.type === TokenType.PLUS) {
-        if (nextToken.type === TokenType.PLUS) {
+      while (nextToken.type === TokenType.X || nextToken.type === TokenType.DIVIDE) {
+        if (nextToken.type === TokenType.X) {
           nextToken = this.tokenizer.fetchAndSelectNext();
           if (nextToken.type === TokenType.INT) {
-            result += nextToken.value;
+            result *= nextToken.value;
           } else this.throwUnexpectedToken();
         } else {
           nextToken = this.tokenizer.fetchAndSelectNext();
           if (nextToken.type === TokenType.INT) {
-            result -= nextToken.value;
+            result = Math.floor(result / nextToken.value);
           } else this.throwUnexpectedToken();
         }
 
@@ -37,6 +37,25 @@ export class Parser {
       }
     } else {
       this.throwUnexpectedToken();
+    }
+
+    return result;
+  }
+
+  static parseExpression() {
+    let result = this.parseTerm();
+    let nextToken: Token = this.tokenizer.getNext();
+
+    while (nextToken.type === TokenType.MINUS || nextToken.type === TokenType.PLUS) {
+      if (nextToken.type === TokenType.PLUS) {
+        nextToken = this.tokenizer.fetchAndSelectNext();
+        result += this.parseTerm();
+      } else {
+        nextToken = this.tokenizer.fetchAndSelectNext();
+        result -= this.parseTerm();
+      }
+
+      nextToken = this.tokenizer.fetchAndSelectNext();
     }
 
     return result;
