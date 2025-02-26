@@ -1,6 +1,6 @@
 import { Token } from "./Token";
 import { isDigit, isWhitespace } from "../lib/utils";
-import { CommonTokens } from "../lib/enums";
+import { TokenRepresentation, TokenType } from "../lib/enums";
 
 export class Tokenizer {
   private source: string;
@@ -44,27 +44,27 @@ export class Tokenizer {
 
     // Detect if the next token is EOF
     if (this.position >= this.source.length) {
-      return new Token({ type: "EOF", value: 0 });
+      return new Token({ type: TokenType.EOF, value: 0 });
     }
 
     // Detect common tokens
     const char = this.source[this.position];
     switch (char) {
-      case CommonTokens.PLUS:
+      case TokenRepresentation.PLUS:
         this.position++;
-        return new Token({ type: "PLUS", value: 0 });
+        return new Token({ type: TokenType.PLUS, value: 0 });
 
-      case CommonTokens.MINUS:
+      case TokenRepresentation.MINUS:
         this.position++;
-        return new Token({ type: "MINUS", value: 0 });
+        return new Token({ type: TokenType.MINUS, value: 0 });
 
-      case CommonTokens.X:
+      case TokenRepresentation.X:
         this.position++;
-        return new Token({ type: "X", value: 0 });
+        return new Token({ type: TokenType.X, value: 0 });
 
-      case CommonTokens.DIVIDE:
+      case TokenRepresentation.DIVIDE:
         this.position++;
-        return new Token({ type: "DIVIDE", value: 0 });
+        return new Token({ type: TokenType.DIVIDE, value: 0 });
 
       default:
         break;
@@ -72,7 +72,7 @@ export class Tokenizer {
 
     if (isDigit(char)) {
       const digitSequence = this.extractDigitSequence();
-      return new Token({ type: "INT", value: Number(digitSequence) });
+      return new Token({ type: TokenType.INT, value: Number(digitSequence) });
     }
 
     throw new Error(`Unknown token ${char}`)

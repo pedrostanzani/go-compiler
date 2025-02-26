@@ -1,4 +1,4 @@
-import { TokenType } from "../types/Token";
+import { TokenType } from "../lib/enums";
 
 export class Token {
   type: TokenType;

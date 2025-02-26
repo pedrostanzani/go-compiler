@@ -1,12 +1,13 @@
 import { Token } from "./Token";
 import { Tokenizer } from "./Tokenizer";
+import { TokenType } from "../lib/enums";
 
 export class Parser {
   private static tokenizer: Tokenizer;
 
   static throwUnexpectedToken() {
     const nextToken: Token = this.tokenizer.getNext();
-    if (nextToken.type === "EOF") {
+    if (nextToken.type === TokenType.EOF) {
       throw new Error("Premature EOF.")
     } else throw new Error("Unexpected non-integer token.")
   }
@@ -15,19 +16,19 @@ export class Parser {
     let result = 0;
     let nextToken: Token = this.tokenizer.getNext();
 
-    if (nextToken.getType() === "INT") {
+    if (nextToken.getType() === TokenType.INT) {
       result = nextToken.getValue();
       nextToken = this.tokenizer.fetchAndSelectNext();
 
-      while (nextToken.type === "MINUS" || nextToken.type === "PLUS") {
-        if (nextToken.type === "PLUS") {
+      while (nextToken.type === TokenType.MINUS || nextToken.type === TokenType.PLUS) {
+        if (nextToken.type === TokenType.PLUS) {
           nextToken = this.tokenizer.fetchAndSelectNext();
-          if (nextToken.type === "INT") {
+          if (nextToken.type === TokenType.INT) {
             result += nextToken.value;
           } else this.throwUnexpectedToken();
         } else {
           nextToken = this.tokenizer.fetchAndSelectNext();
-          if (nextToken.type === "INT") {
+          if (nextToken.type === TokenType.INT) {
             result -= nextToken.value;
           } else this.throwUnexpectedToken();
         }
@@ -46,7 +47,7 @@ export class Parser {
     let result = this.parseExpression();
 
     const nextToken = this.tokenizer.getNext();
-    if (nextToken.getType() !== "EOF") {
+    if (nextToken.getType() !== TokenType.EOF) {
       throw new Error("Could not detect EOF.");
     }
 
