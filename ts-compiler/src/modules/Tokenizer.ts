@@ -78,7 +78,7 @@ export class Tokenizer {
     throw new Error(`Unknown token ${char}`)
   }
 
-  public selectNext() {
+  private selectNext() {
     this.next = this.extractToken();
   }
 

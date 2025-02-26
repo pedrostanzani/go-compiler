@@ -56,7 +56,7 @@ class Parser {
                 nextToken = this.tokenizer.fetchAndSelectNext();
                 result -= this.parseTerm();
             }
-            nextToken = this.tokenizer.fetchAndSelectNext();
+            nextToken = this.tokenizer.getNext();
         }
         return result;
     }

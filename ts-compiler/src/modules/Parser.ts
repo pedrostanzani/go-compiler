@@ -55,7 +55,7 @@ export class Parser {
         result -= this.parseTerm();
       }
 
-      nextToken = this.tokenizer.fetchAndSelectNext();
+      nextToken = this.tokenizer.getNext();
     }
 
     return result;
