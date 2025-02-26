@@ -58,6 +58,12 @@ class Tokenizer {
             case enums_1.TokenRepresentation.DIVIDE:
                 this.position++;
                 return new Token_1.Token({ type: enums_1.TokenType.DIVIDE, value: 0 });
+            case enums_1.TokenRepresentation.OPEN_PAR:
+                this.position++;
+                return new Token_1.Token({ type: enums_1.TokenType.OPEN_PAR, value: 0 });
+            case enums_1.TokenRepresentation.CLOSE_PAR:
+                this.position++;
+                return new Token_1.Token({ type: enums_1.TokenType.CLOSE_PAR, value: 0 });
             default:
                 break;
         }
@@ -69,9 +75,6 @@ class Tokenizer {
     }
     selectNext() {
         this.next = this.extractToken();
-    }
-    fetchAndSelectNext() {
-        this.selectNext();
         return this.next;
     }
 }
