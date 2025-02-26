@@ -8,35 +8,65 @@ export class Parser {
   static throwUnexpectedToken() {
     const nextToken: Token = this.tokenizer.getNext();
     if (nextToken.type === TokenType.EOF) {
-      throw new Error("Premature EOF.")
-    } else throw new Error("Unexpected non-integer token.")
+      throw new Error("Premature EOF.");
+    } else throw new Error("Unexpected non-integer token.");
   }
 
-  static parseTerm() {
+  static parseFactor(): number {
     let result = 0;
     let nextToken: Token = this.tokenizer.getNext();
 
     if (nextToken.getType() === TokenType.INT) {
       result = nextToken.getValue();
-      nextToken = this.tokenizer.selectNext();
+      this.tokenizer.selectNext();
+      return result;
+    }
 
-      while (nextToken.type === TokenType.X || nextToken.type === TokenType.DIVIDE) {
-        if (nextToken.type === TokenType.X) {
-          nextToken = this.tokenizer.selectNext();
-          if (nextToken.type === TokenType.INT) {
-            result *= nextToken.value;
-          } else this.throwUnexpectedToken();
-        } else {
-          nextToken = this.tokenizer.selectNext();
-          if (nextToken.type === TokenType.INT) {
-            result = Math.floor(result / nextToken.value);
-          } else this.throwUnexpectedToken();
-        }
+    if (nextToken.getType() === TokenType.PLUS) {
+      this.tokenizer.selectNext();
+      result = this.parseFactor();
+      return result;
+    }
 
-        nextToken = this.tokenizer.selectNext();
+    if (nextToken.getType() === TokenType.MINUS) {
+      this.tokenizer.selectNext();
+      result = -this.parseFactor();
+      return result;
+    }
+
+    if (nextToken.getType() === TokenType.OPEN_PAR) {
+      this.tokenizer.selectNext();
+      result = this.parseExpression();
+      nextToken = this.tokenizer.getNext();
+      if (nextToken.getType() === TokenType.CLOSE_PAR) {
+        this.tokenizer.selectNext();
+        return result;
+      } else {
+        this.throwUnexpectedToken();
       }
-    } else {
-      this.throwUnexpectedToken();
+    }
+
+    this.throwUnexpectedToken();
+    return result;
+  }
+
+  static parseTerm() {
+    let result = this.parseFactor();
+    let nextToken: Token = this.tokenizer.getNext();
+
+    while (
+      nextToken.type === TokenType.X ||
+      nextToken.type === TokenType.DIVIDE
+    ) {
+      if (nextToken.type === TokenType.X) {
+        nextToken = this.tokenizer.selectNext();
+        result *= this.parseTerm();
+      } else {
+        nextToken = this.tokenizer.selectNext();
+        result = Math.floor(result / nextToken.value);
+      }
+
+      nextToken = this.tokenizer.getNext();
     }
 
     return result;
@@ -46,7 +76,10 @@ export class Parser {
     let result = this.parseTerm();
     let nextToken: Token = this.tokenizer.getNext();
 
-    while (nextToken.type === TokenType.MINUS || nextToken.type === TokenType.PLUS) {
+    while (
+      nextToken.type === TokenType.MINUS ||
+      nextToken.type === TokenType.PLUS
+    ) {
       if (nextToken.type === TokenType.PLUS) {
         nextToken = this.tokenizer.selectNext();
         result += this.parseTerm();
