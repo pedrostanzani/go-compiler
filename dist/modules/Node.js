@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IntVal = exports.UnOp = exports.BinOp = void 0;
+exports.Assignment = exports.Print = exports.Block = exports.Identifier = exports.NoOp = exports.IntVal = exports.UnOp = exports.BinOp = void 0;
 const enums_1 = require("../lib/enums");
 class BinOp {
     value;
@@ -9,16 +9,17 @@ class BinOp {
         this.value = value;
         this.children = children;
     }
-    evaluate() {
+    evaluate(symbolTable) {
+        const [firstChild, secondChild] = this.children;
         switch (this.value) {
             case enums_1.TokenType.PLUS:
-                return this.children[0].evaluate() + this.children[1].evaluate();
+                return (firstChild.evaluate(symbolTable) + secondChild.evaluate(symbolTable));
             case enums_1.TokenType.MINUS:
-                return this.children[0].evaluate() - this.children[1].evaluate();
+                return (firstChild.evaluate(symbolTable) - secondChild.evaluate(symbolTable));
             case enums_1.TokenType.DIVIDE:
-                return Math.floor(this.children[0].evaluate() / this.children[1].evaluate());
+                return Math.floor(firstChild.evaluate(symbolTable) / secondChild.evaluate(symbolTable));
             case enums_1.TokenType.X:
-                return this.children[0].evaluate() * this.children[1].evaluate();
+                return (firstChild.evaluate(symbolTable) * secondChild.evaluate(symbolTable));
             default:
                 break;
         }
@@ -33,11 +34,14 @@ class UnOp {
         this.value = value;
         this.children = children;
     }
-    evaluate() {
+    evaluate(symbolTable) {
+        const child = this.children[0];
         if (this.value === enums_1.TokenType.MINUS) {
-            return -this.children[0].evaluate();
+            return -child.evaluate(symbolTable);
         }
-        return this.children[0].evaluate();
+        else {
+            return child.evaluate(symbolTable);
+        }
     }
 }
 exports.UnOp = UnOp;
@@ -53,3 +57,76 @@ class IntVal {
     }
 }
 exports.IntVal = IntVal;
+class NoOp {
+    value;
+    children;
+    constructor() {
+        this.value = null;
+        this.children = [];
+    }
+    evaluate() {
+        return this.value ?? 0;
+    }
+}
+exports.NoOp = NoOp;
+class Identifier {
+    value;
+    children;
+    constructor({ token }) {
+        if (token.getType() !== enums_1.TokenType.IDENTIFIER) {
+            throw new Error("Expected identifier token.");
+        }
+        this.value = token.getStringValue();
+        this.children = [];
+    }
+    evaluate(symbolTable) {
+        return symbolTable.get(this.value);
+    }
+}
+exports.Identifier = Identifier;
+class Block {
+    value;
+    children;
+    constructor({ children }) {
+        this.value = null;
+        this.children = children;
+    }
+    evaluate(symbolTable) {
+        this.children.forEach((child) => {
+            child.evaluate(symbolTable);
+        });
+        return 0;
+    }
+}
+exports.Block = Block;
+class Print {
+    value;
+    children;
+    constructor({ children }) {
+        this.value = null;
+        this.children = children;
+    }
+    evaluate(symbolTable) {
+        const child = this.children[0];
+        console.log(child.evaluate(symbolTable));
+        return 0;
+    }
+}
+exports.Print = Print;
+class Assignment {
+    value;
+    children;
+    constructor({ children }) {
+        this.value = null;
+        this.children = children;
+    }
+    evaluate(symbolTable) {
+        const [firstChild, secondChild] = this.children;
+        if (typeof firstChild.value !== "string") {
+            throw new Error("Cannot assign to literal");
+        }
+        symbolTable.set(firstChild.value, secondChild.evaluate(symbolTable));
+        return 0;
+    }
+}
+exports.Assignment = Assignment;

@@ -9,11 +9,25 @@ export enum TokenType {
   DIVIDE = "DIVIDE",
 
   // Brackets
-  OPEN_PAR = 'OPEN_PAR',
-  CLOSE_PAR = 'CLOSE_PAR',
+  OPEN_PAR = "OPEN_PAR",
+  CLOSE_PAR = "CLOSE_PAR",
+
+  // Blocks
+  OPEN_BRAC = "OPEN_BRAC",
+  CLOSE_BRAC = "CLOSE_BRAC",
+
+  // Assignment
+  ASSIGNMENT = "ASSIGNMENT",
+  IDENTIFIER = "IDENTIFIER",
+
+  // Built-ins
+  PRINTLN = "PRINTLN",
+
+  // New line
+  NEW_LINE = "NEW_LINE",
 
   // EOF
-  EOF = "EOF"
+  EOF = "EOF",
 }
 
 export enum TokenRepresentation {
@@ -25,5 +39,18 @@ export enum TokenRepresentation {
 
   // Brackets
   OPEN_PAR = "(",
-  CLOSE_PAR = ")"
+  CLOSE_PAR = ")",
+
+  // Blocks
+  OPEN_BRAC = "{",
+  CLOSE_BRAC = "}",
+
+  // Assignment
+  ASSIGNMENT = "=",
+
+  // Built-ins
+  PRINT = "Println",
+
+  // New line
+  NEW_LINE = "\n",
 }

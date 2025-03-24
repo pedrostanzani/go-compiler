@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { Parser } from "./modules/Parser";
+import { SymbolTable } from "./modules/SymbolTable";
 
 const main = () => {
   const argument = process.argv[2];
@@ -13,14 +14,16 @@ const main = () => {
     try {
       sourceCode = readFileSync(argument, "utf8");
     } catch (error) {
+      console.error(error)
       throw new Error("Failed to read file");
     }
   } else {
     sourceCode = argument;
   }
 
-  const result = Parser.run(sourceCode);
-  console.log(result.evaluate());
+  const ast = Parser.run(sourceCode);
+  const symbolTable = new SymbolTable();
+  ast.evaluate(symbolTable);
 };
 
 main();

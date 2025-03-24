@@ -23,6 +23,19 @@ class Tokenizer {
             return this.skipWhitespace();
         }
     }
+    extractIdentifierSequence() {
+        let tokenValue = "";
+        for (let i = this.position; i < this.source.length; i++) {
+            const char = this.source[i];
+            if ((0, utils_1.isValidIdentifierChar)(char)) {
+                tokenValue += char;
+                this.position++;
+            }
+            else
+                break;
+        }
+        return tokenValue;
+    }
     extractDigitSequence() {
         let tokenValue = "";
         for (let i = this.position; i < this.source.length; i++) {
@@ -41,29 +54,41 @@ class Tokenizer {
         this.skipWhitespace();
         // Detect if the next token is EOF
         if (this.position >= this.source.length) {
-            return new Token_1.Token({ type: enums_1.TokenType.EOF, value: 0 });
+            return new Token_1.Token({ type: enums_1.TokenType.EOF });
         }
         // Detect common tokens
         const char = this.source[this.position];
         switch (char) {
             case enums_1.TokenRepresentation.PLUS:
                 this.position++;
-                return new Token_1.Token({ type: enums_1.TokenType.PLUS, value: 0 });
+                return new Token_1.Token({ type: enums_1.TokenType.PLUS });
             case enums_1.TokenRepresentation.MINUS:
                 this.position++;
-                return new Token_1.Token({ type: enums_1.TokenType.MINUS, value: 0 });
+                return new Token_1.Token({ type: enums_1.TokenType.MINUS });
             case enums_1.TokenRepresentation.X:
                 this.position++;
-                return new Token_1.Token({ type: enums_1.TokenType.X, value: 0 });
+                return new Token_1.Token({ type: enums_1.TokenType.X });
             case enums_1.TokenRepresentation.DIVIDE:
                 this.position++;
-                return new Token_1.Token({ type: enums_1.TokenType.DIVIDE, value: 0 });
+                return new Token_1.Token({ type: enums_1.TokenType.DIVIDE });
             case enums_1.TokenRepresentation.OPEN_PAR:
                 this.position++;
-                return new Token_1.Token({ type: enums_1.TokenType.OPEN_PAR, value: 0 });
+                return new Token_1.Token({ type: enums_1.TokenType.OPEN_PAR });
             case enums_1.TokenRepresentation.CLOSE_PAR:
                 this.position++;
-                return new Token_1.Token({ type: enums_1.TokenType.CLOSE_PAR, value: 0 });
+                return new Token_1.Token({ type: enums_1.TokenType.CLOSE_PAR });
+            case enums_1.TokenRepresentation.OPEN_BRAC:
+                this.position++;
+                return new Token_1.Token({ type: enums_1.TokenType.OPEN_BRAC });
+            case enums_1.TokenRepresentation.CLOSE_BRAC:
+                this.position++;
+                return new Token_1.Token({ type: enums_1.TokenType.CLOSE_BRAC });
+            case enums_1.TokenRepresentation.ASSIGNMENT:
+                this.position++;
+                return new Token_1.Token({ type: enums_1.TokenType.ASSIGNMENT });
+            case enums_1.TokenRepresentation.NEW_LINE:
+                this.position++;
+                return new Token_1.Token({ type: enums_1.TokenType.NEW_LINE });
             default:
                 break;
         }
@@ -71,9 +96,18 @@ class Tokenizer {
             const digitSequence = this.extractDigitSequence();
             return new Token_1.Token({ type: enums_1.TokenType.INT, value: Number(digitSequence) });
         }
+        if ((0, utils_1.isAlpha)(char) || char === "_") {
+            const identifierSequence = this.extractIdentifierSequence();
+            switch (identifierSequence) {
+                case enums_1.TokenRepresentation.PRINT:
+                    return new Token_1.Token({ type: enums_1.TokenType.PRINTLN });
+                default:
+                    return new Token_1.Token({ type: enums_1.TokenType.IDENTIFIER, value: identifierSequence });
+            }
+        }
         throw new Error(`Unknown token ${char}`);
     }
-    selectNext() {
+    selectNext(lineNumber = -1) {
         this.next = this.extractToken();
         return this.next;
     }

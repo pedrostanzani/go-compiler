@@ -13,6 +13,16 @@ var TokenType;
     // Brackets
     TokenType["OPEN_PAR"] = "OPEN_PAR";
     TokenType["CLOSE_PAR"] = "CLOSE_PAR";
+    // Blocks
+    TokenType["OPEN_BRAC"] = "OPEN_BRAC";
+    TokenType["CLOSE_BRAC"] = "CLOSE_BRAC";
+    // Assignment
+    TokenType["ASSIGNMENT"] = "ASSIGNMENT";
+    TokenType["IDENTIFIER"] = "IDENTIFIER";
+    // Built-ins
+    TokenType["PRINTLN"] = "PRINTLN";
+    // New line
+    TokenType["NEW_LINE"] = "NEW_LINE";
     // EOF
     TokenType["EOF"] = "EOF";
 })(TokenType || (exports.TokenType = TokenType = {}));
@@ -26,4 +36,13 @@ var TokenRepresentation;
     // Brackets
     TokenRepresentation["OPEN_PAR"] = "(";
     TokenRepresentation["CLOSE_PAR"] = ")";
+    // Blocks
+    TokenRepresentation["OPEN_BRAC"] = "{";
+    TokenRepresentation["CLOSE_BRAC"] = "}";
+    // Assignment
+    TokenRepresentation["ASSIGNMENT"] = "=";
+    // Built-ins
+    TokenRepresentation["PRINT"] = "Println";
+    // New line
+    TokenRepresentation["NEW_LINE"] = "\n";
 })(TokenRepresentation || (exports.TokenRepresentation = TokenRepresentation = {}));

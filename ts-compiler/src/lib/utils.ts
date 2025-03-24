@@ -4,6 +4,14 @@ export function isDigit(char: string) {
   return DIGITS.includes(char);
 }
 
+export function isAlpha(char: string): boolean {
+  return /^[A-Za-z]$/.test(char);
+}
+
+export function isValidIdentifierChar(char: string): boolean {
+  return /^[A-Za-z0-9_]$/.test(char);
+}
+
 export function isWhitespace(char: string) {
-  return char === " ";
+  return char === " " || char === "\t";
 }

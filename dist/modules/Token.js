@@ -4,12 +4,24 @@ exports.Token = void 0;
 class Token {
     type;
     value;
-    constructor({ type, value }) {
+    constructor({ type, value = null, }) {
         this.type = type;
         this.value = value;
     }
     getType() {
         return this.type;
+    }
+    getNumericValue() {
+        if (typeof this.value === "number") {
+            return this.value;
+        }
+        return 0;
+    }
+    getStringValue() {
+        if (typeof this.value === "string") {
+            return this.value;
+        }
+        return "";
     }
     getValue() {
         return this.value;
