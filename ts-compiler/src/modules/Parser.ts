@@ -21,8 +21,7 @@ export class Parser {
   static throwUnexpectedToken(
     errorMessage: string = "Unexpected token."
   ): never {
-    const nextToken: Token = this.tokenizer.getNext();
-    if (nextToken.type === TokenType.EOF) {
+    if (this.tokenizer.getNext().type === TokenType.EOF) {
       throw new Error("Premature EOF.");
     } else throw new Error(errorMessage);
   }
@@ -207,8 +206,7 @@ export class Parser {
     });
     let result = this.parseBlock();
 
-    const nextToken = this.tokenizer.getNext();
-    if (nextToken.getType() !== TokenType.EOF) {
+    if (this.tokenizer.getNext().getType() !== TokenType.EOF) {
       throw new Error("Could not detect EOF.");
     }
 
