@@ -71,7 +71,7 @@ export class Parser {
       return node;
     }
 
-    if (nextToken.getType() === TokenType.MINUS) {
+    if (nextToken.getType() === TokenType.NOT) {
       this.tokenizer.selectNext();
       const node = new UnOp({
         value: TokenType.NOT,
