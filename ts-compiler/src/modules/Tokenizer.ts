@@ -1,5 +1,10 @@
 import { Token } from "./Token";
-import { isAlpha, isDigit, isValidIdentifierChar, isWhitespace } from "../lib/utils";
+import {
+  isAlpha,
+  isDigit,
+  isValidIdentifierChar,
+  isWhitespace,
+} from "../lib/utils";
 import { TokenRepresentation, TokenType } from "../lib/enums";
 
 export class Tokenizer {
@@ -99,9 +104,9 @@ export class Tokenizer {
         this.position++;
         return new Token({ type: TokenType.ASSIGNMENT });
 
-        case TokenRepresentation.NEW_LINE:
-          this.position++;
-          return new Token({ type: TokenType.NEW_LINE });
+      case TokenRepresentation.NEW_LINE:
+        this.position++;
+        return new Token({ type: TokenType.NEW_LINE });
 
       default:
         break;
@@ -117,9 +122,12 @@ export class Tokenizer {
       switch (identifierSequence) {
         case TokenRepresentation.PRINT:
           return new Token({ type: TokenType.PRINTLN });
-      
+
         default:
-          return new Token({ type: TokenType.IDENTIFIER, value: identifierSequence })
+          return new Token({
+            type: TokenType.IDENTIFIER,
+            value: identifierSequence,
+          });
       }
     }
 
