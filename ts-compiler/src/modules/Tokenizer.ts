@@ -67,6 +67,8 @@ export class Tokenizer {
 
     // Detect common tokens
     const char = this.source[this.position];
+    let nextChar: string;
+
     switch (char) {
       case TokenRepresentation.PLUS:
         this.position++;
@@ -100,13 +102,52 @@ export class Tokenizer {
         this.position++;
         return new Token({ type: TokenType.CLOSE_BRAC });
 
-      case TokenRepresentation.ASSIGNMENT:
-        this.position++;
-        return new Token({ type: TokenType.ASSIGNMENT });
-
       case TokenRepresentation.NEW_LINE:
         this.position++;
         return new Token({ type: TokenType.NEW_LINE });
+
+      case TokenRepresentation.NOT:
+        this.position++;
+        return new Token({ type: TokenType.NOT });
+
+      case TokenRepresentation.GREATER_THAN:
+        this.position++;
+        return new Token({ type: TokenType.GREATER_THAN });
+
+      case TokenRepresentation.LESS_THAN:
+        this.position++;
+        return new Token({ type: TokenType.LESS_THAN });
+
+      // Compound tokens
+      case TokenRepresentation.ASSIGNMENT:
+        this.position++;
+        nextChar = this.source[this.position];
+        if (nextChar === "=") {
+          this.position++;
+          return new Token({ type: TokenType.EQUALS });
+        } else {
+          return new Token({ type: TokenType.ASSIGNMENT });
+        }
+
+      case TokenRepresentation.AND.charAt(0):
+        this.position++;
+        nextChar = this.source[this.position];
+        if (nextChar === TokenRepresentation.AND.charAt(1)) {
+          this.position++;
+          return new Token({ type: TokenType.AND });
+        } else {
+          throw new Error(`Unknown token ${char}`);
+        }
+
+      case TokenRepresentation.OR.charAt(0):
+        this.position++;
+        nextChar = this.source[this.position];
+        if (nextChar === TokenRepresentation.OR.charAt(1)) {
+          this.position++;
+          return new Token({ type: TokenType.OR });
+        } else {
+          throw new Error(`Unknown token ${char}`);
+        }
 
       default:
         break;
@@ -123,6 +164,18 @@ export class Tokenizer {
         case TokenRepresentation.PRINT:
           return new Token({ type: TokenType.PRINTLN });
 
+        case TokenRepresentation.READ:
+          return new Token({ type: TokenType.READ });
+
+        case TokenRepresentation.IF:
+          return new Token({ type: TokenType.IF });
+
+        case TokenRepresentation.ELSE:
+          return new Token({ type: TokenType.ELSE });
+
+        case TokenRepresentation.WHILE:
+          return new Token({ type: TokenType.WHILE });
+
         default:
           return new Token({
             type: TokenType.IDENTIFIER,
@@ -137,5 +190,11 @@ export class Tokenizer {
   public selectNext(lineNumber: number = -1) {
     this.next = this.extractToken();
     return this.next;
+  }
+
+  public debug() {
+    console.log(this.source[this.position])
+    console.log(this.position);
+    console.log(this.next.getRepr());
   }
 }

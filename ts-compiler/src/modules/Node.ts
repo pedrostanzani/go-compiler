@@ -1,6 +1,15 @@
 import { TokenType } from "../lib/enums";
+import { input } from "../lib/input";
+import { isTruthy } from "../lib/utils";
 import { SymbolTable } from "./SymbolTable";
 import { Token } from "./Token";
+
+type LogicalOperator =
+  | TokenType.OR
+  | TokenType.AND
+  | TokenType.EQUALS
+  | TokenType.GREATER_THAN
+  | TokenType.LESS_THAN;
 
 type Operator =
   | TokenType.PLUS
@@ -17,15 +26,15 @@ export interface TreeNode<V> {
 
 export type GenericTreeNode = TreeNode<Variant>;
 
-export class BinOp implements TreeNode<Operator> {
-  value: Operator;
+export class BinOp implements TreeNode<Operator | LogicalOperator> {
+  value: Operator | LogicalOperator;
   children: GenericTreeNode[];
 
   constructor({
     value,
     children,
   }: {
-    value: Operator;
+    value: Operator | LogicalOperator;
     children: GenericTreeNode[];
   }) {
     this.value = value;
@@ -56,6 +65,36 @@ export class BinOp implements TreeNode<Operator> {
           firstChild.evaluate(symbolTable) * secondChild.evaluate(symbolTable)
         );
 
+      case TokenType.OR:
+        return firstChild.evaluate(symbolTable) ||
+          secondChild.evaluate(symbolTable)
+          ? 1
+          : 0;
+
+      case TokenType.AND:
+        return firstChild.evaluate(symbolTable) &&
+          secondChild.evaluate(symbolTable)
+          ? 1
+          : 0;
+
+      case TokenType.EQUALS:
+        return firstChild.evaluate(symbolTable) ==
+          secondChild.evaluate(symbolTable)
+          ? 1
+          : 0;
+
+      case TokenType.GREATER_THAN:
+        return firstChild.evaluate(symbolTable) >
+          secondChild.evaluate(symbolTable)
+          ? 1
+          : 0;
+
+      case TokenType.LESS_THAN:
+        return firstChild.evaluate(symbolTable) <
+          secondChild.evaluate(symbolTable)
+          ? 1
+          : 0;
+
       default:
         break;
     }
@@ -64,15 +103,17 @@ export class BinOp implements TreeNode<Operator> {
   }
 }
 
-export class UnOp implements TreeNode<TokenType.PLUS | TokenType.MINUS> {
-  value: TokenType.PLUS | TokenType.MINUS;
+export class UnOp
+  implements TreeNode<TokenType.PLUS | TokenType.MINUS | TokenType.NOT>
+{
+  value: TokenType.PLUS | TokenType.MINUS | TokenType.NOT;
   children: GenericTreeNode[];
 
   constructor({
     value,
     children,
   }: {
-    value: TokenType.PLUS | TokenType.MINUS;
+    value: TokenType.PLUS | TokenType.MINUS | TokenType.NOT;
     children: GenericTreeNode[];
   }) {
     this.value = value;
@@ -84,8 +125,10 @@ export class UnOp implements TreeNode<TokenType.PLUS | TokenType.MINUS> {
 
     if (this.value === TokenType.MINUS) {
       return -child.evaluate(symbolTable);
-    } else {
+    } else if (this.value === TokenType.PLUS) {
       return child.evaluate(symbolTable);
+    } else {
+      return !child.evaluate(symbolTable) ? 1 : 0;
     }
   }
 }
@@ -193,5 +236,61 @@ export class Assignment implements TreeNode<null> {
 
     symbolTable.set(firstChild.value, secondChild.evaluate(symbolTable));
     return 0;
+  }
+}
+
+export class While implements TreeNode<null> {
+  value: null;
+  children: GenericTreeNode[];
+
+  constructor({ children }: { children: GenericTreeNode[] }) {
+    this.value = null;
+    this.children = children;
+  }
+
+  evaluate(symbolTable: SymbolTable) {
+    const [firstChild, secondChild] = this.children;
+
+    while (firstChild.evaluate(symbolTable)) {
+      secondChild.evaluate(symbolTable);
+    }
+
+    return 0;
+  }
+}
+
+export class If implements TreeNode<null> {
+  value: null;
+  children: GenericTreeNode[];
+
+  constructor({ children }: { children: GenericTreeNode[] }) {
+    this.value = null;
+    this.children = children;
+  }
+
+  evaluate(symbolTable: SymbolTable) {
+    const [firstChild, secondChild, thirdChild] = this.children;
+
+    if (firstChild.evaluate(symbolTable)) {
+      secondChild.evaluate(symbolTable);
+    } else if (isTruthy(thirdChild)) {
+      thirdChild.evaluate(symbolTable);
+    }
+
+    return 0;
+  }
+}
+
+export class Scan implements TreeNode<null> {
+  value: null;
+  children: GenericTreeNode[];
+
+  constructor() {
+    this.value = null;
+    this.children = [];
+  }
+
+  evaluate(symbolTable: SymbolTable) {
+    return Number(input());
   }
 }
