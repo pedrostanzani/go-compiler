@@ -286,17 +286,18 @@ export class Parser {
     if (nextToken.getType() === TokenType.IF) {
       nextToken = this.tokenizer.selectNext();
       const condition = this.parseBooleanExpression();
+      if (nextToken.getType() === TokenType.NEW_LINE) {
+        this.throwUnexpectedToken();
+      } 
+      
       const ifBlock = this.parseBlock()
-
-      nextToken = this.tokenizer.selectNext();
-
-      const elseBlock = nextToken.getType() === TokenType.ELSE ? this.parseBlock() : null;
-      const children = [condition, ifBlock];
-      if (isTruthy(elseBlock)) {
-        children.push(elseBlock);
+      if (this.tokenizer.getNext().getType() === TokenType.ELSE) {
+        this.tokenizer.selectNext();
+        const elseBlock = this.parseBlock();
+        return new If({ children: [condition, ifBlock, elseBlock] })
       }
 
-      return new If({ children });
+      return new If({ children: [condition, ifBlock] })
     }
 
     if (nextToken.getType() === TokenType.NEW_LINE) {

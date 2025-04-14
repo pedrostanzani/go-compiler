@@ -189,12 +189,14 @@ export class Tokenizer {
 
   public selectNext(lineNumber: number = -1) {
     this.next = this.extractToken();
+    // console.log("Selected next token: ", this.getNext().getType())
     return this.next;
   }
 
   public debug() {
-    console.log(this.source[this.position])
-    console.log(this.position);
-    console.log(this.next.getRepr());
+    // console.log(`\`\`\`${this.source}\`\`\``)
+    // console.log(this.source[this.position])
+    // console.log(this.position);
+    // console.log(this.next.getRepr());
   }
 }
