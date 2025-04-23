@@ -4,7 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.input = input;
-const readline_sync_1 = __importDefault(require("readline-sync"));
-function input(prompt = "") {
-    return readline_sync_1.default.question(prompt);
+// @ts-ignore
+const syncprompt_1 = __importDefault(require("syncprompt"));
+function input(message = "") {
+    return (0, syncprompt_1.default)(message);
 }
