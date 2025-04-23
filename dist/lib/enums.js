@@ -10,14 +10,6 @@ var TokenType;
     TokenType["MINUS"] = "MINUS";
     TokenType["X"] = "X";
     TokenType["DIVIDE"] = "DIVIDE";
-    // Boolean operators
-    TokenType["NOT"] = "NOT";
-    TokenType["AND"] = "AND";
-    TokenType["OR"] = "OR";
-    // Comparison operators
-    TokenType["EQUALS"] = "EQUALS";
-    TokenType["GREATER_THAN"] = "GREATER_THAN";
-    TokenType["LESS_THAN"] = "LESS_THAN";
     // Brackets
     TokenType["OPEN_PAR"] = "OPEN_PAR";
     TokenType["CLOSE_PAR"] = "CLOSE_PAR";
@@ -27,13 +19,8 @@ var TokenType;
     // Assignment
     TokenType["ASSIGNMENT"] = "ASSIGNMENT";
     TokenType["IDENTIFIER"] = "IDENTIFIER";
-    // Conditional statements
-    TokenType["IF"] = "IF";
-    TokenType["ELSE"] = "ELSE";
-    TokenType["WHILE"] = "WHILE";
     // Built-ins
     TokenType["PRINTLN"] = "PRINTLN";
-    TokenType["READ"] = "READ";
     // New line
     TokenType["NEW_LINE"] = "NEW_LINE";
     // EOF
@@ -46,14 +33,6 @@ var TokenRepresentation;
     TokenRepresentation["MINUS"] = "-";
     TokenRepresentation["X"] = "*";
     TokenRepresentation["DIVIDE"] = "/";
-    // Boolean operators
-    TokenRepresentation["NOT"] = "!";
-    TokenRepresentation["AND"] = "&&";
-    TokenRepresentation["OR"] = "||";
-    // Comparison operators
-    TokenRepresentation["EQUALS"] = "==";
-    TokenRepresentation["GREATER_THAN"] = ">";
-    TokenRepresentation["LESS_THAN"] = "<";
     // Brackets
     TokenRepresentation["OPEN_PAR"] = "(";
     TokenRepresentation["CLOSE_PAR"] = ")";
@@ -62,13 +41,8 @@ var TokenRepresentation;
     TokenRepresentation["CLOSE_BRAC"] = "}";
     // Assignment
     TokenRepresentation["ASSIGNMENT"] = "=";
-    // Conditional statements
-    TokenRepresentation["IF"] = "if";
-    TokenRepresentation["ELSE"] = "else";
-    TokenRepresentation["WHILE"] = "for";
     // Built-ins
     TokenRepresentation["PRINT"] = "Println";
-    TokenRepresentation["READ"] = "Scan";
     // New line
     TokenRepresentation["NEW_LINE"] = "\n";
 })(TokenRepresentation || (exports.TokenRepresentation = TokenRepresentation = {}));

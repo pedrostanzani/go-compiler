@@ -4,7 +4,6 @@ exports.isDigit = isDigit;
 exports.isAlpha = isAlpha;
 exports.isValidIdentifierChar = isValidIdentifierChar;
 exports.isWhitespace = isWhitespace;
-exports.isTruthy = isTruthy;
 const DIGITS = Array.from(String(1234567890));
 function isDigit(char) {
     return DIGITS.includes(char);
@@ -17,7 +16,4 @@ function isValidIdentifierChar(char) {
 }
 function isWhitespace(char) {
     return char === " " || char === "\t";
-}
-function isTruthy(value) {
-    return Boolean(value);
 }
