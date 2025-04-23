@@ -1,5 +1,6 @@
-import readlineSync from "readline-sync";
+// @ts-ignore
+import prompt from "syncprompt";
 
-export function input(prompt: string = ""): string {
-  return readlineSync.question(prompt);
+export function input(message: string = ""): string {
+  return prompt(message);
 }
