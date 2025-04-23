@@ -21,12 +21,14 @@ import {
 export class Parser {
   private static tokenizer: Tokenizer;
 
-  static throwUnexpectedToken(
-    errorMessage: string = "Unexpected token."
-  ): never {
+  static throwUnexpectedToken(errorMessage?: string): never {
     if (this.tokenizer.getNext().type === TokenType.EOF) {
       throw new Error("Premature EOF.");
-    } else throw new Error(errorMessage);
+    } else
+      throw new Error(
+        errorMessage ??
+          `Unexpected token: ${this.tokenizer.getNext().getType()}`
+      );
   }
 
   static parseFactor(): GenericTreeNode {
@@ -89,7 +91,7 @@ export class Parser {
         this.tokenizer.selectNext();
         if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
           this.tokenizer.selectNext();
-          return new Scan()
+          return new Scan();
         }
       }
 
@@ -249,7 +251,7 @@ export class Parser {
     if (this.tokenizer.getNext().getType() === TokenType.WHILE) {
       this.tokenizer.selectNext();
       const booleanExpression = this.parseBooleanExpression();
-      this.tokenizer.selectNext();
+      // this.tokenizer.selectNext();
       const whileNode = new While({
         children: [booleanExpression, this.parseBlock()],
       });
@@ -265,13 +267,12 @@ export class Parser {
     if (this.tokenizer.getNext().getType() === TokenType.IF) {
       this.tokenizer.selectNext();
       const booleanExpression = this.parseBooleanExpression();
-      this.tokenizer.selectNext();
       const ifBlock = this.parseBlock();
 
       if (this.tokenizer.getNext().getType() === TokenType.ELSE) {
         this.tokenizer.selectNext();
         const elseBlock = this.parseBlock();
-        this.tokenizer.selectNext();
+        // this.tokenizer.selectNext();
         if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
           return new If({ children: [booleanExpression, ifBlock, elseBlock] });
         } else {
@@ -304,7 +305,9 @@ export class Parser {
         }
         this.tokenizer.selectNext(193);
         return new Block({ children: statements });
-      } else this.throwUnexpectedToken();
+      } else {
+        this.throwUnexpectedToken();
+      }
     } else {
       this.throwUnexpectedToken();
     }
