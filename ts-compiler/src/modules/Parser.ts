@@ -8,11 +8,14 @@ import {
   Block,
   GenericTreeNode,
   Identifier,
+  If,
   IntVal,
   NoOp,
   Print,
+  Scan,
   TreeNode,
   UnOp,
+  While,
 } from "./Node";
 
 export class Parser {
@@ -28,7 +31,10 @@ export class Parser {
 
   static parseFactor(): GenericTreeNode {
     if (this.tokenizer.getNext().getType() === TokenType.INT) {
-      const node = new IntVal({ value: this.tokenizer.getNext().getNumericValue(), children: [] });
+      const node = new IntVal({
+        value: this.tokenizer.getNext().getNumericValue(),
+        children: [],
+      });
       this.tokenizer.selectNext(35); // \n
       return node;
     }
@@ -57,15 +63,37 @@ export class Parser {
       return node;
     }
 
+    if (this.tokenizer.getNext().getType() === TokenType.NOT) {
+      this.tokenizer.selectNext();
+      const node = new UnOp({
+        value: TokenType.NOT,
+        children: [this.parseFactor()],
+      });
+      return node;
+    }
+
     if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
       this.tokenizer.selectNext(64);
-      const node = this.parseExpression();
+      const node = this.parseBooleanExpression();
       if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
         this.tokenizer.selectNext(68);
         return node;
       } else {
         this.throwUnexpectedToken();
       }
+    }
+
+    if (this.tokenizer.getNext().getType() === TokenType.READ) {
+      this.tokenizer.selectNext();
+      if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
+        this.tokenizer.selectNext();
+        if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
+          this.tokenizer.selectNext();
+          return new Scan()
+        }
+      }
+
+      this.throwUnexpectedToken();
     }
 
     this.throwUnexpectedToken();
@@ -121,13 +149,73 @@ export class Parser {
     return node;
   }
 
+  static parseRelationalExpression(): GenericTreeNode {
+    let node: GenericTreeNode = this.parseExpression();
+
+    while (
+      this.tokenizer.getNext().type === TokenType.EQUALS ||
+      this.tokenizer.getNext().type === TokenType.GREATER_THAN ||
+      this.tokenizer.getNext().type === TokenType.LESS_THAN
+    ) {
+      if (this.tokenizer.getNext().type === TokenType.EQUALS) {
+        this.tokenizer.selectNext();
+        node = new BinOp({
+          value: TokenType.EQUALS,
+          children: [node, this.parseExpression()],
+        });
+      } else if (this.tokenizer.getNext().type === TokenType.GREATER_THAN) {
+        this.tokenizer.selectNext();
+        node = new BinOp({
+          value: TokenType.GREATER_THAN,
+          children: [node, this.parseExpression()],
+        });
+      } else {
+        this.tokenizer.selectNext();
+        node = new BinOp({
+          value: TokenType.LESS_THAN,
+          children: [node, this.parseExpression()],
+        });
+      }
+    }
+
+    return node;
+  }
+
+  static parseBooleanTerm(): GenericTreeNode {
+    let node: GenericTreeNode = this.parseRelationalExpression();
+
+    while (this.tokenizer.getNext().type === TokenType.AND) {
+      this.tokenizer.selectNext();
+      node = new BinOp({
+        value: TokenType.AND,
+        children: [node, this.parseRelationalExpression()],
+      });
+    }
+
+    return node;
+  }
+
+  static parseBooleanExpression(): GenericTreeNode {
+    let node: GenericTreeNode = this.parseBooleanTerm();
+
+    while (this.tokenizer.getNext().type === TokenType.OR) {
+      this.tokenizer.selectNext();
+      node = new BinOp({
+        value: TokenType.OR,
+        children: [node, this.parseBooleanTerm()],
+      });
+    }
+
+    return node;
+  }
+
   static parseStatement(): GenericTreeNode {
     if (this.tokenizer.getNext().getType() === TokenType.IDENTIFIER) {
       const identifier = new Identifier({ token: this.tokenizer.getNext() });
       this.tokenizer.selectNext(139); // =
       if (this.tokenizer.getNext().getType() === TokenType.ASSIGNMENT) {
         this.tokenizer.selectNext(141); // 3
-        const expression = this.parseExpression();
+        const expression = this.parseBooleanExpression();
         const assignment = new Assignment({
           children: [identifier, expression],
         });
@@ -136,7 +224,6 @@ export class Parser {
           this.tokenizer.selectNext(148);
           return assignment;
         }
-
       }
 
       this.throwUnexpectedToken();
@@ -146,7 +233,7 @@ export class Parser {
       this.tokenizer.selectNext(157); // (
       if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
         this.tokenizer.selectNext(159); // pedro
-        const print = new Print({ children: [this.parseExpression()] });
+        const print = new Print({ children: [this.parseBooleanExpression()] });
         if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
           this.tokenizer.selectNext(); // \n
           if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
@@ -159,11 +246,50 @@ export class Parser {
       this.throwUnexpectedToken();
     }
 
+    if (this.tokenizer.getNext().getType() === TokenType.WHILE) {
+      this.tokenizer.selectNext();
+      const booleanExpression = this.parseBooleanExpression();
+      this.tokenizer.selectNext();
+      const whileNode = new While({
+        children: [booleanExpression, this.parseBlock()],
+      });
+
+      if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
+        this.tokenizer.selectNext();
+        return whileNode;
+      }
+
+      this.throwUnexpectedToken();
+    }
+
+    if (this.tokenizer.getNext().getType() === TokenType.IF) {
+      this.tokenizer.selectNext();
+      const booleanExpression = this.parseBooleanExpression();
+      this.tokenizer.selectNext();
+      const ifBlock = this.parseBlock();
+
+      if (this.tokenizer.getNext().getType() === TokenType.ELSE) {
+        this.tokenizer.selectNext();
+        const elseBlock = this.parseBlock();
+        this.tokenizer.selectNext();
+        if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
+          return new If({ children: [booleanExpression, ifBlock, elseBlock] });
+        } else {
+          this.throwUnexpectedToken();
+        }
+      } else if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
+        this.tokenizer.selectNext();
+        return new If({ children: [booleanExpression, ifBlock] });
+      }
+
+      this.throwUnexpectedToken();
+    }
+
     if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
       this.tokenizer.selectNext(175);
       return new NoOp();
     }
-    
+
     this.throwUnexpectedToken();
   }
 
@@ -180,8 +306,8 @@ export class Parser {
         return new Block({ children: statements });
       } else this.throwUnexpectedToken();
     } else {
-      this.throwUnexpectedToken()
-    };
+      this.throwUnexpectedToken();
+    }
 
     this.throwUnexpectedToken();
   }
