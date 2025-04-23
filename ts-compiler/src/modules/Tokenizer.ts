@@ -128,6 +128,5 @@ export class Tokenizer {
 
   public selectNext(lineNumber: number = -1) {
     this.next = this.extractToken();
-    return this.next;
   }
 }

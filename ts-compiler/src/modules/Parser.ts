@@ -21,28 +21,25 @@ export class Parser {
   static throwUnexpectedToken(
     errorMessage: string = "Unexpected token."
   ): never {
-    const nextToken: Token = this.tokenizer.getNext();
-    if (nextToken.type === TokenType.EOF) {
+    if (this.tokenizer.getNext().type === TokenType.EOF) {
       throw new Error("Premature EOF.");
     } else throw new Error(errorMessage);
   }
 
   static parseFactor(): GenericTreeNode {
-    let nextToken: Token = this.tokenizer.getNext(); // 3
-
-    if (nextToken.getType() === TokenType.INT) {
-      const node = new IntVal({ value: nextToken.getNumericValue(), children: [] });
+    if (this.tokenizer.getNext().getType() === TokenType.INT) {
+      const node = new IntVal({ value: this.tokenizer.getNext().getNumericValue(), children: [] });
       this.tokenizer.selectNext(35); // \n
       return node;
     }
 
-    if (nextToken.getType() === TokenType.IDENTIFIER) {
-      const node = new Identifier({ token: nextToken });
+    if (this.tokenizer.getNext().getType() === TokenType.IDENTIFIER) {
+      const node = new Identifier({ token: this.tokenizer.getNext() });
       this.tokenizer.selectNext(41); // )
       return node;
     }
 
-    if (nextToken.getType() === TokenType.PLUS) {
+    if (this.tokenizer.getNext().getType() === TokenType.PLUS) {
       this.tokenizer.selectNext(46);
       const node = new UnOp({
         value: TokenType.PLUS,
@@ -51,7 +48,7 @@ export class Parser {
       return node;
     }
 
-    if (nextToken.getType() === TokenType.MINUS) {
+    if (this.tokenizer.getNext().getType() === TokenType.MINUS) {
       this.tokenizer.selectNext(55);
       const node = new UnOp({
         value: TokenType.MINUS,
@@ -60,11 +57,10 @@ export class Parser {
       return node;
     }
 
-    if (nextToken.getType() === TokenType.OPEN_PAR) {
+    if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
       this.tokenizer.selectNext(64);
       const node = this.parseExpression();
-      nextToken = this.tokenizer.getNext();
-      if (nextToken.getType() === TokenType.CLOSE_PAR) {
+      if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
         this.tokenizer.selectNext(68);
         return node;
       } else {
@@ -77,27 +73,24 @@ export class Parser {
 
   static parseTerm(): GenericTreeNode {
     let node: GenericTreeNode = this.parseFactor();
-    let nextToken: Token = this.tokenizer.getNext(); // \n
 
     while (
-      nextToken.type === TokenType.X ||
-      nextToken.type === TokenType.DIVIDE
+      this.tokenizer.getNext().type === TokenType.X ||
+      this.tokenizer.getNext().type === TokenType.DIVIDE
     ) {
-      if (nextToken.type === TokenType.X) {
-        nextToken = this.tokenizer.selectNext(87);
+      if (this.tokenizer.getNext().type === TokenType.X) {
+        this.tokenizer.selectNext(87);
         node = new BinOp({
           value: TokenType.X,
           children: [node, this.parseFactor()],
         });
       } else {
-        nextToken = this.tokenizer.selectNext(93);
+        this.tokenizer.selectNext(93);
         node = new BinOp({
           value: TokenType.DIVIDE,
           children: [node, this.parseFactor()],
         });
       }
-
-      nextToken = this.tokenizer.getNext();
     }
 
     return node;
@@ -105,47 +98,41 @@ export class Parser {
 
   static parseExpression(): GenericTreeNode {
     let node: GenericTreeNode = this.parseTerm();
-    let nextToken: Token = this.tokenizer.getNext(); // \n
 
     while (
-      nextToken.type === TokenType.MINUS ||
-      nextToken.type === TokenType.PLUS
+      this.tokenizer.getNext().type === TokenType.MINUS ||
+      this.tokenizer.getNext().type === TokenType.PLUS
     ) {
-      if (nextToken.type === TokenType.PLUS) {
-        nextToken = this.tokenizer.selectNext(115);
+      if (this.tokenizer.getNext().type === TokenType.PLUS) {
+        this.tokenizer.selectNext(115);
         node = new BinOp({
           value: TokenType.PLUS,
           children: [node, this.parseTerm()],
         });
       } else {
-        nextToken = this.tokenizer.selectNext(121);
+        this.tokenizer.selectNext(121);
         node = new BinOp({
           value: TokenType.MINUS,
           children: [node, this.parseTerm()],
         });
       }
-
-      nextToken = this.tokenizer.getNext();
     }
 
     return node;
   }
 
   static parseStatement(): GenericTreeNode {
-    let nextToken: Token = this.tokenizer.getNext(); // pedro
-
-    if (nextToken.getType() === TokenType.IDENTIFIER) {
-      const identifier = new Identifier({ token: nextToken });
-      nextToken = this.tokenizer.selectNext(139); // =
-      if (nextToken.getType() === TokenType.ASSIGNMENT) {
-        nextToken = this.tokenizer.selectNext(141); // 3
+    if (this.tokenizer.getNext().getType() === TokenType.IDENTIFIER) {
+      const identifier = new Identifier({ token: this.tokenizer.getNext() });
+      this.tokenizer.selectNext(139); // =
+      if (this.tokenizer.getNext().getType() === TokenType.ASSIGNMENT) {
+        this.tokenizer.selectNext(141); // 3
         const expression = this.parseExpression();
         const assignment = new Assignment({
           children: [identifier, expression],
         });
 
-        nextToken = this.tokenizer.getNext();
-        if (nextToken.getType() === TokenType.NEW_LINE) {
+        if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
           this.tokenizer.selectNext(148);
           return assignment;
         }
@@ -155,15 +142,14 @@ export class Parser {
       this.throwUnexpectedToken();
     }
 
-    if (nextToken.getType() === TokenType.PRINTLN) {
-      nextToken = this.tokenizer.selectNext(157); // (
-      if (nextToken.getType() === TokenType.OPEN_PAR) {
-        nextToken = this.tokenizer.selectNext(159); // pedro
+    if (this.tokenizer.getNext().getType() === TokenType.PRINTLN) {
+      this.tokenizer.selectNext(157); // (
+      if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
+        this.tokenizer.selectNext(159); // pedro
         const print = new Print({ children: [this.parseExpression()] });
-        nextToken = this.tokenizer.getNext(); // )
-        if (nextToken.getType() === TokenType.CLOSE_PAR) {
-          nextToken = this.tokenizer.selectNext(); // \n
-          if (nextToken.getType() === TokenType.NEW_LINE) {
+        if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
+          this.tokenizer.selectNext(); // \n
+          if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
             this.tokenizer.selectNext(165);
             return print;
           }
@@ -173,7 +159,7 @@ export class Parser {
       this.throwUnexpectedToken();
     }
 
-    if (nextToken.getType() === TokenType.NEW_LINE) {
+    if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
       this.tokenizer.selectNext(175);
       return new NoOp();
     }
@@ -207,8 +193,7 @@ export class Parser {
     });
     let result = this.parseBlock();
 
-    const nextToken = this.tokenizer.getNext();
-    if (nextToken.getType() !== TokenType.EOF) {
+    if (this.tokenizer.getNext().getType() !== TokenType.EOF) {
       throw new Error("Could not detect EOF.");
     }
 
