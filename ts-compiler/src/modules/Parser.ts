@@ -192,6 +192,11 @@ export class Parser {
       position: 0,
     });
     let result = this.parseBlock();
+    // Each parsing function should make sure that the next token is 'ready to go'
+    // So if run() calls
+    //  --> parseBlock()
+    // By the time the parseBlock function execution ends, the nextToken should be whatever
+    // comes after parseBlock in the diagram
 
     if (this.tokenizer.getNext().getType() !== TokenType.EOF) {
       throw new Error("Could not detect EOF.");
