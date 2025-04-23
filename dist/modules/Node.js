@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Assignment = exports.Print = exports.Block = exports.Identifier = exports.NoOp = exports.IntVal = exports.UnOp = exports.BinOp = void 0;
+exports.Scan = exports.If = exports.While = exports.Assignment = exports.Print = exports.Block = exports.Identifier = exports.NoOp = exports.IntVal = exports.UnOp = exports.BinOp = void 0;
 const enums_1 = require("../lib/enums");
+const input_1 = require("../lib/input");
+const utils_1 = require("../lib/utils");
 class BinOp {
     value;
     children;
@@ -20,6 +22,31 @@ class BinOp {
                 return Math.floor(firstChild.evaluate(symbolTable) / secondChild.evaluate(symbolTable));
             case enums_1.TokenType.X:
                 return (firstChild.evaluate(symbolTable) * secondChild.evaluate(symbolTable));
+            case enums_1.TokenType.OR:
+                return firstChild.evaluate(symbolTable) ||
+                    secondChild.evaluate(symbolTable)
+                    ? 1
+                    : 0;
+            case enums_1.TokenType.AND:
+                return firstChild.evaluate(symbolTable) &&
+                    secondChild.evaluate(symbolTable)
+                    ? 1
+                    : 0;
+            case enums_1.TokenType.EQUALS:
+                return firstChild.evaluate(symbolTable) ==
+                    secondChild.evaluate(symbolTable)
+                    ? 1
+                    : 0;
+            case enums_1.TokenType.GREATER_THAN:
+                return firstChild.evaluate(symbolTable) >
+                    secondChild.evaluate(symbolTable)
+                    ? 1
+                    : 0;
+            case enums_1.TokenType.LESS_THAN:
+                return firstChild.evaluate(symbolTable) <
+                    secondChild.evaluate(symbolTable)
+                    ? 1
+                    : 0;
             default:
                 break;
         }
@@ -39,8 +66,11 @@ class UnOp {
         if (this.value === enums_1.TokenType.MINUS) {
             return -child.evaluate(symbolTable);
         }
-        else {
+        else if (this.value === enums_1.TokenType.PLUS) {
             return child.evaluate(symbolTable);
+        }
+        else {
+            return !child.evaluate(symbolTable) ? 1 : 0;
         }
     }
 }
@@ -130,3 +160,50 @@ class Assignment {
     }
 }
 exports.Assignment = Assignment;
+class While {
+    value;
+    children;
+    constructor({ children }) {
+        this.value = null;
+        this.children = children;
+    }
+    evaluate(symbolTable) {
+        const [firstChild, secondChild] = this.children;
+        while (firstChild.evaluate(symbolTable)) {
+            secondChild.evaluate(symbolTable);
+        }
+        return 0;
+    }
+}
+exports.While = While;
+class If {
+    value;
+    children;
+    constructor({ children }) {
+        this.value = null;
+        this.children = children;
+    }
+    evaluate(symbolTable) {
+        const [condition, ifBlock, elseBlock] = this.children;
+        if (condition.evaluate(symbolTable)) {
+            ifBlock.evaluate(symbolTable);
+        }
+        else if ((0, utils_1.isTruthy)(elseBlock)) {
+            elseBlock.evaluate(symbolTable);
+        }
+        return 0;
+    }
+}
+exports.If = If;
+class Scan {
+    value;
+    children;
+    constructor() {
+        this.value = null;
+        this.children = [];
+    }
+    evaluate(symbolTable) {
+        return Number((0, input_1.input)());
+    }
+}
+exports.Scan = Scan;
