@@ -1,15 +1,5 @@
-import * as readline from "readline";
+import readlineSync from "readline-sync";
 
-export async function input(query: string = ""): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise<string>((resolve) => {
-    rl.question(query, (answer) => {
-      rl.close();
-      resolve(answer);
-    });
-  });
+export function input(prompt: string = ""): string {
+  return readlineSync.question(prompt);
 }
