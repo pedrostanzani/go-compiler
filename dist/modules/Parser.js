@@ -7,12 +7,13 @@ const PrePro_1 = require("./PrePro");
 const Node_1 = require("./Node");
 class Parser {
     static tokenizer;
-    static throwUnexpectedToken(errorMessage = "Unexpected token.") {
+    static throwUnexpectedToken(errorMessage) {
         if (this.tokenizer.getNext().type === enums_1.TokenType.EOF) {
             throw new Error("Premature EOF.");
         }
         else
-            throw new Error(errorMessage);
+            throw new Error(errorMessage ??
+                `Unexpected token: ${this.tokenizer.getNext().getType()}`);
     }
     static parseFactor() {
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.INT) {
@@ -204,7 +205,7 @@ class Parser {
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.WHILE) {
             this.tokenizer.selectNext();
             const booleanExpression = this.parseBooleanExpression();
-            this.tokenizer.selectNext();
+            // this.tokenizer.selectNext();
             const whileNode = new Node_1.While({
                 children: [booleanExpression, this.parseBlock()],
             });
@@ -217,12 +218,11 @@ class Parser {
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.IF) {
             this.tokenizer.selectNext();
             const booleanExpression = this.parseBooleanExpression();
-            this.tokenizer.selectNext();
             const ifBlock = this.parseBlock();
             if (this.tokenizer.getNext().getType() === enums_1.TokenType.ELSE) {
                 this.tokenizer.selectNext();
                 const elseBlock = this.parseBlock();
-                this.tokenizer.selectNext();
+                // this.tokenizer.selectNext();
                 if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
                     return new Node_1.If({ children: [booleanExpression, ifBlock, elseBlock] });
                 }
@@ -254,8 +254,9 @@ class Parser {
                 this.tokenizer.selectNext(193);
                 return new Node_1.Block({ children: statements });
             }
-            else
+            else {
                 this.throwUnexpectedToken();
+            }
         }
         else {
             this.throwUnexpectedToken();
