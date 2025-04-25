@@ -20,6 +20,16 @@ import {
 } from "./Node";
 import { isTruthy } from "../lib/utils";
 
+type Sequence = {
+  items: TokenType[];
+  onFinish: () => GenericTreeNode;
+  throwErrorOnFirstItem?: boolean
+  errorDetails?: {
+    fn: string;
+    details: string
+  }
+}
+
 export class Parser {
   private static tokenizer: Tokenizer;
 
@@ -35,17 +45,39 @@ export class Parser {
     if (this.tokenizer.getNext().type === TokenType.EOF) {
       throw new Error("Premature EOF.");
     } else {
-      Debug.log(`Current position: ${this.tokenizer.position}`)
-      Debug.log(`Next token: ${this.tokenizer.getNext().getType()}`)
-      Debug.log(`Raw source code:`)
-      Debug.log(`---`)
-      Debug.log(this.tokenizer.source)
-      Debug.log(`---`)
+      Debug.log(`Current position: ${this.tokenizer.position}`);
+      Debug.log(`Next token: ${this.tokenizer.getNext().getType()}`);
+      Debug.log(`Raw source code:`);
+      Debug.log(`---`);
+      Debug.log(this.tokenizer.source);
+      Debug.log(`---`);
 
       Debug.log(`Error thown from: ${fn}`);
       Debug.log(`Details: ${details}`);
       throw new Error(errorMessage);
     }
+  }
+
+  static readSequential({
+    throwErrorOnFirstItem = true,
+    ...sequence
+  }: Sequence): GenericTreeNode | null {
+    for (let i = 0; i < sequence.items.length; i++) {
+      const item = sequence.items[i];
+      if (this.tokenizer.getNext().getType() === item) {
+        this.tokenizer.selectNext();
+        continue;
+      } else if (i === 0 && !throwErrorOnFirstItem) {
+        return null;
+      } else {
+        this.throwUnexpectedToken(sequence.errorDetails ?? {
+          fn: "readSequential",
+          details: "GENERIC",
+        });
+      }
+    }
+
+    return sequence.onFinish();
   }
 
   static parseFactor(): GenericTreeNode {
@@ -105,21 +137,17 @@ export class Parser {
       }
     }
 
-    if (this.tokenizer.getNext().getType() === TokenType.READ) {
-      this.tokenizer.selectNext();
-      if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
-        this.tokenizer.selectNext();
-        if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
-          this.tokenizer.selectNext();
-          return new Scan();
-        }
-      }
-
-      this.throwUnexpectedToken({
+    const node = this.readSequential({
+      items: [TokenType.READ, TokenType.OPEN_PAR, TokenType.CLOSE_PAR],
+      onFinish: () => new Scan(),
+      throwErrorOnFirstItem: false,
+      errorDetails: {
         fn: "parseFactor",
         details: "READ",
-      });
-    }
+      }
+    });
+    
+    if (isTruthy(node)) return node;
 
     this.throwUnexpectedToken({
       fn: "parseFactor",
