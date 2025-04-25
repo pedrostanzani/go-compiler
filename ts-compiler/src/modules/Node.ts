@@ -1,5 +1,5 @@
 import { TokenType } from "../lib/enums";
-import { input } from "../lib/input";
+import { Input } from "../lib/input";
 import { isTruthy } from "../lib/utils";
 import { SymbolTable } from "./SymbolTable";
 import { Token } from "./Token";
@@ -283,6 +283,8 @@ export class If implements TreeNode<null> {
 }
 
 export class Scan implements TreeNode<null> {
+  private static input: Input = new Input("syncprompt");
+
   value: null;
   children: GenericTreeNode[];
 
@@ -292,6 +294,6 @@ export class Scan implements TreeNode<null> {
   }
 
   evaluate(symbolTable: SymbolTable) {
-    return Number(input());
+    return Number(Scan.input.get());
   }
 }

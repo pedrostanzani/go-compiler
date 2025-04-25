@@ -35,18 +35,18 @@ export class Parser {
         value: this.tokenizer.getNext().getNumericValue(),
         children: [],
       });
-      this.tokenizer.selectNext(35); // \n
+      this.tokenizer.selectNext();
       return node;
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.IDENTIFIER) {
       const node = new Identifier({ token: this.tokenizer.getNext() });
-      this.tokenizer.selectNext(41); // )
+      this.tokenizer.selectNext();
       return node;
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.PLUS) {
-      this.tokenizer.selectNext(46);
+      this.tokenizer.selectNext();
       const node = new UnOp({
         value: TokenType.PLUS,
         children: [this.parseFactor()],
@@ -55,7 +55,7 @@ export class Parser {
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.MINUS) {
-      this.tokenizer.selectNext(55);
+      this.tokenizer.selectNext();
       const node = new UnOp({
         value: TokenType.MINUS,
         children: [this.parseFactor()],
@@ -73,10 +73,10 @@ export class Parser {
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
-      this.tokenizer.selectNext(64);
+      this.tokenizer.selectNext();
       const node = this.parseBooleanExpression();
       if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
-        this.tokenizer.selectNext(68);
+        this.tokenizer.selectNext();
         return node;
       } else {
         this.throwUnexpectedToken();
@@ -107,13 +107,13 @@ export class Parser {
       this.tokenizer.getNext().type === TokenType.DIVIDE
     ) {
       if (this.tokenizer.getNext().type === TokenType.X) {
-        this.tokenizer.selectNext(87);
+        this.tokenizer.selectNext();
         node = new BinOp({
           value: TokenType.X,
           children: [node, this.parseFactor()],
         });
       } else {
-        this.tokenizer.selectNext(93);
+        this.tokenizer.selectNext();
         node = new BinOp({
           value: TokenType.DIVIDE,
           children: [node, this.parseFactor()],
@@ -132,13 +132,13 @@ export class Parser {
       this.tokenizer.getNext().type === TokenType.PLUS
     ) {
       if (this.tokenizer.getNext().type === TokenType.PLUS) {
-        this.tokenizer.selectNext(115);
+        this.tokenizer.selectNext();
         node = new BinOp({
           value: TokenType.PLUS,
           children: [node, this.parseTerm()],
         });
       } else {
-        this.tokenizer.selectNext(121);
+        this.tokenizer.selectNext();
         node = new BinOp({
           value: TokenType.MINUS,
           children: [node, this.parseTerm()],
@@ -212,16 +212,16 @@ export class Parser {
   static parseStatement(): GenericTreeNode {
     if (this.tokenizer.getNext().getType() === TokenType.IDENTIFIER) {
       const identifier = new Identifier({ token: this.tokenizer.getNext() });
-      this.tokenizer.selectNext(139); // =
+      this.tokenizer.selectNext();
       if (this.tokenizer.getNext().getType() === TokenType.ASSIGNMENT) {
-        this.tokenizer.selectNext(141); // 3
+        this.tokenizer.selectNext();
         const expression = this.parseBooleanExpression();
         const assignment = new Assignment({
           children: [identifier, expression],
         });
 
         if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
-          this.tokenizer.selectNext(148);
+          this.tokenizer.selectNext();
           return assignment;
         }
       }
@@ -230,14 +230,14 @@ export class Parser {
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.PRINTLN) {
-      this.tokenizer.selectNext(157); // (
+      this.tokenizer.selectNext();
       if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
-        this.tokenizer.selectNext(159); // pedro
+        this.tokenizer.selectNext();
         const print = new Print({ children: [this.parseBooleanExpression()] });
         if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
-          this.tokenizer.selectNext(); // \n
+          this.tokenizer.selectNext();
           if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
-            this.tokenizer.selectNext(165);
+            this.tokenizer.selectNext();
             return print;
           }
         }
@@ -286,7 +286,7 @@ export class Parser {
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
-      this.tokenizer.selectNext(175);
+      this.tokenizer.selectNext();
       return new NoOp();
     }
 
@@ -295,21 +295,19 @@ export class Parser {
 
   static parseBlock(): GenericTreeNode {
     if (this.tokenizer.getNext().getType() === TokenType.OPEN_BRAC) {
-      this.tokenizer.selectNext(186); // \n
+      this.tokenizer.selectNext();
       if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
-        this.tokenizer.selectNext(188); // pedro
+        this.tokenizer.selectNext();
         const statements: GenericTreeNode[] = [];
         while (this.tokenizer.getNext().getType() !== TokenType.CLOSE_BRAC) {
           statements.push(this.parseStatement());
         }
-        this.tokenizer.selectNext(193);
+        this.tokenizer.selectNext();
         return new Block({ children: statements });
       } else this.throwUnexpectedToken();
     } else {
       this.throwUnexpectedToken();
     }
-
-    this.throwUnexpectedToken();
   }
 
   static run(sourceCode: string): GenericTreeNode {
