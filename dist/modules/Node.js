@@ -196,6 +196,7 @@ class If {
 }
 exports.If = If;
 class Scan {
+    static input = new input_1.Input("syncprompt");
     value;
     children;
     constructor() {
@@ -203,7 +204,7 @@ class Scan {
         this.children = [];
     }
     evaluate(symbolTable) {
-        return Number((0, input_1.input)());
+        return Number(Scan.input.get());
     }
 }
 exports.Scan = Scan;

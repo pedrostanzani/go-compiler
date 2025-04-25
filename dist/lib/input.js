@@ -1,11 +1,21 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.input = input;
-// @ts-ignore
-const syncprompt_1 = __importDefault(require("syncprompt"));
-function input(message = "") {
-    return (0, syncprompt_1.default)(message);
+exports.Input = void 0;
+class Input {
+    api;
+    constructor(api = "readline-sync") {
+        this.api = api;
+    }
+    get(message = "") {
+        if (this.api === "readline-sync") {
+            const readlineSync = require("readline-sync");
+            return readlineSync.question(message);
+        }
+        else {
+            // @ts-ignore
+            const prompt = require("syncprompt");
+            return prompt(message);
+        }
+    }
 }
+exports.Input = Input;

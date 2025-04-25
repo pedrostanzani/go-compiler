@@ -4,15 +4,25 @@ exports.Parser = void 0;
 const Tokenizer_1 = require("./Tokenizer");
 const enums_1 = require("../lib/enums");
 const PrePro_1 = require("./PrePro");
+const debug_1 = require("../lib/debug");
 const Node_1 = require("./Node");
 class Parser {
     static tokenizer;
-    static throwUnexpectedToken(errorMessage = "Unexpected token.") {
+    static throwUnexpectedToken({ fn, details, errorMessage = "Unexpected token.", }) {
         if (this.tokenizer.getNext().type === enums_1.TokenType.EOF) {
             throw new Error("Premature EOF.");
         }
-        else
+        else {
+            debug_1.Debug.log(`Current position: ${this.tokenizer.position}`);
+            debug_1.Debug.log(`Next token: ${this.tokenizer.getNext().getType()}`);
+            debug_1.Debug.log(`Raw source code:`);
+            debug_1.Debug.log(`---`);
+            debug_1.Debug.log(this.tokenizer.source);
+            debug_1.Debug.log(`---`);
+            debug_1.Debug.log(`Error thown from: ${fn}`);
+            debug_1.Debug.log(`Details: ${details}`);
             throw new Error(errorMessage);
+        }
     }
     static parseFactor() {
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.INT) {
@@ -20,16 +30,16 @@ class Parser {
                 value: this.tokenizer.getNext().getNumericValue(),
                 children: [],
             });
-            this.tokenizer.selectNext(35); // \n
+            this.tokenizer.selectNext();
             return node;
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.IDENTIFIER) {
             const node = new Node_1.Identifier({ token: this.tokenizer.getNext() });
-            this.tokenizer.selectNext(41); // )
+            this.tokenizer.selectNext();
             return node;
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.PLUS) {
-            this.tokenizer.selectNext(46);
+            this.tokenizer.selectNext();
             const node = new Node_1.UnOp({
                 value: enums_1.TokenType.PLUS,
                 children: [this.parseFactor()],
@@ -37,7 +47,7 @@ class Parser {
             return node;
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.MINUS) {
-            this.tokenizer.selectNext(55);
+            this.tokenizer.selectNext();
             const node = new Node_1.UnOp({
                 value: enums_1.TokenType.MINUS,
                 children: [this.parseFactor()],
@@ -53,14 +63,17 @@ class Parser {
             return node;
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.OPEN_PAR) {
-            this.tokenizer.selectNext(64);
+            this.tokenizer.selectNext();
             const node = this.parseBooleanExpression();
             if (this.tokenizer.getNext().getType() === enums_1.TokenType.CLOSE_PAR) {
-                this.tokenizer.selectNext(68);
+                this.tokenizer.selectNext();
                 return node;
             }
             else {
-                this.throwUnexpectedToken();
+                this.throwUnexpectedToken({
+                    fn: "parseFactor",
+                    details: "OPEN_PAR",
+                });
             }
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.READ) {
@@ -72,23 +85,29 @@ class Parser {
                     return new Node_1.Scan();
                 }
             }
-            this.throwUnexpectedToken();
+            this.throwUnexpectedToken({
+                fn: "parseFactor",
+                details: "READ",
+            });
         }
-        this.throwUnexpectedToken();
+        this.throwUnexpectedToken({
+            fn: "parseFactor",
+            details: "ESCAPE",
+        });
     }
     static parseTerm() {
         let node = this.parseFactor();
         while (this.tokenizer.getNext().type === enums_1.TokenType.X ||
             this.tokenizer.getNext().type === enums_1.TokenType.DIVIDE) {
             if (this.tokenizer.getNext().type === enums_1.TokenType.X) {
-                this.tokenizer.selectNext(87);
+                this.tokenizer.selectNext();
                 node = new Node_1.BinOp({
                     value: enums_1.TokenType.X,
                     children: [node, this.parseFactor()],
                 });
             }
             else {
-                this.tokenizer.selectNext(93);
+                this.tokenizer.selectNext();
                 node = new Node_1.BinOp({
                     value: enums_1.TokenType.DIVIDE,
                     children: [node, this.parseFactor()],
@@ -102,14 +121,14 @@ class Parser {
         while (this.tokenizer.getNext().type === enums_1.TokenType.MINUS ||
             this.tokenizer.getNext().type === enums_1.TokenType.PLUS) {
             if (this.tokenizer.getNext().type === enums_1.TokenType.PLUS) {
-                this.tokenizer.selectNext(115);
+                this.tokenizer.selectNext();
                 node = new Node_1.BinOp({
                     value: enums_1.TokenType.PLUS,
                     children: [node, this.parseTerm()],
                 });
             }
             else {
-                this.tokenizer.selectNext(121);
+                this.tokenizer.selectNext();
                 node = new Node_1.BinOp({
                     value: enums_1.TokenType.MINUS,
                     children: [node, this.parseTerm()],
@@ -172,39 +191,45 @@ class Parser {
     static parseStatement() {
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.IDENTIFIER) {
             const identifier = new Node_1.Identifier({ token: this.tokenizer.getNext() });
-            this.tokenizer.selectNext(139); // =
+            this.tokenizer.selectNext();
             if (this.tokenizer.getNext().getType() === enums_1.TokenType.ASSIGNMENT) {
-                this.tokenizer.selectNext(141); // 3
+                this.tokenizer.selectNext();
                 const expression = this.parseBooleanExpression();
                 const assignment = new Node_1.Assignment({
                     children: [identifier, expression],
                 });
                 if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
-                    this.tokenizer.selectNext(148);
+                    this.tokenizer.selectNext();
                     return assignment;
                 }
             }
-            this.throwUnexpectedToken();
+            this.throwUnexpectedToken({
+                fn: "parseStatement",
+                details: "IDENTIFIER",
+            });
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.PRINTLN) {
-            this.tokenizer.selectNext(157); // (
+            this.tokenizer.selectNext();
             if (this.tokenizer.getNext().getType() === enums_1.TokenType.OPEN_PAR) {
-                this.tokenizer.selectNext(159); // pedro
+                this.tokenizer.selectNext();
                 const print = new Node_1.Print({ children: [this.parseBooleanExpression()] });
                 if (this.tokenizer.getNext().getType() === enums_1.TokenType.CLOSE_PAR) {
-                    this.tokenizer.selectNext(); // \n
+                    this.tokenizer.selectNext();
                     if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
-                        this.tokenizer.selectNext(165);
+                        this.tokenizer.selectNext();
                         return print;
                     }
                 }
             }
-            this.throwUnexpectedToken();
+            this.throwUnexpectedToken({
+                fn: "parseStatement",
+                details: "PRINTLN",
+            });
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.WHILE) {
             this.tokenizer.selectNext();
             const booleanExpression = this.parseBooleanExpression();
-            this.tokenizer.selectNext();
+            // this.tokenizer.selectNext();
             const whileNode = new Node_1.While({
                 children: [booleanExpression, this.parseBlock()],
             });
@@ -212,55 +237,72 @@ class Parser {
                 this.tokenizer.selectNext();
                 return whileNode;
             }
-            this.throwUnexpectedToken();
+            this.throwUnexpectedToken({
+                fn: "parseStatement",
+                details: "WHILE",
+            });
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.IF) {
             this.tokenizer.selectNext();
             const booleanExpression = this.parseBooleanExpression();
-            this.tokenizer.selectNext();
+            // this.tokenizer.selectNext();
             const ifBlock = this.parseBlock();
             if (this.tokenizer.getNext().getType() === enums_1.TokenType.ELSE) {
                 this.tokenizer.selectNext();
                 const elseBlock = this.parseBlock();
-                this.tokenizer.selectNext();
+                // this.tokenizer.selectNext();
                 if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
                     return new Node_1.If({ children: [booleanExpression, ifBlock, elseBlock] });
                 }
                 else {
-                    this.throwUnexpectedToken();
+                    this.throwUnexpectedToken({
+                        fn: "parseStatement",
+                        details: "ELSE/NEW_LINE",
+                    });
                 }
             }
             else if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
                 this.tokenizer.selectNext();
                 return new Node_1.If({ children: [booleanExpression, ifBlock] });
             }
-            this.throwUnexpectedToken();
+            this.throwUnexpectedToken({
+                fn: "parseStatement",
+                details: "IF",
+            });
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
-            this.tokenizer.selectNext(175);
+            this.tokenizer.selectNext();
             return new Node_1.NoOp();
         }
-        this.throwUnexpectedToken();
+        this.throwUnexpectedToken({
+            fn: "parseStatement",
+            details: "ESCAPE",
+        });
     }
     static parseBlock() {
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.OPEN_BRAC) {
-            this.tokenizer.selectNext(186); // \n
+            this.tokenizer.selectNext();
             if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
-                this.tokenizer.selectNext(188); // pedro
+                this.tokenizer.selectNext();
                 const statements = [];
                 while (this.tokenizer.getNext().getType() !== enums_1.TokenType.CLOSE_BRAC) {
                     statements.push(this.parseStatement());
                 }
-                this.tokenizer.selectNext(193);
+                this.tokenizer.selectNext();
                 return new Node_1.Block({ children: statements });
             }
             else
-                this.throwUnexpectedToken();
+                this.throwUnexpectedToken({
+                    fn: "parseBlock",
+                    details: "NEW_LINE",
+                });
         }
         else {
-            this.throwUnexpectedToken();
+            this.throwUnexpectedToken({
+                fn: "parseBlock",
+                details: "ESCAPE",
+            });
         }
-        this.throwUnexpectedToken();
     }
     static run(sourceCode) {
         this.tokenizer = new Tokenizer_1.Tokenizer({

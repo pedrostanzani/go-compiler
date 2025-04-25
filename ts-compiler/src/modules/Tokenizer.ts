@@ -8,8 +8,8 @@ import {
 import { TokenRepresentation, TokenType } from "../lib/enums";
 
 export class Tokenizer {
-  private source: string;
-  private position: number;
+  source: string;
+  position: number;
   private next: Token;
 
   constructor({ source, position }: { source: string; position: number }) {

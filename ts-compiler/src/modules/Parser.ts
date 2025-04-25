@@ -2,6 +2,7 @@ import { Token } from "./Token";
 import { Tokenizer } from "./Tokenizer";
 import { TokenType } from "../lib/enums";
 import { PrePro } from "./PrePro";
+import { Debug } from "../lib/debug";
 import {
   Assignment,
   BinOp,
@@ -17,16 +18,34 @@ import {
   UnOp,
   While,
 } from "./Node";
+import { isTruthy } from "../lib/utils";
 
 export class Parser {
   private static tokenizer: Tokenizer;
 
-  static throwUnexpectedToken(
-    errorMessage: string = "Unexpected token."
-  ): never {
+  static throwUnexpectedToken({
+    fn,
+    details,
+    errorMessage = "Unexpected token.",
+  }: {
+    fn: string;
+    details: string;
+    errorMessage?: string;
+  }): never {
     if (this.tokenizer.getNext().type === TokenType.EOF) {
       throw new Error("Premature EOF.");
-    } else throw new Error(errorMessage);
+    } else {
+      Debug.log(`Current position: ${this.tokenizer.position}`)
+      Debug.log(`Next token: ${this.tokenizer.getNext().getType()}`)
+      Debug.log(`Raw source code:`)
+      Debug.log(`---`)
+      Debug.log(this.tokenizer.source)
+      Debug.log(`---`)
+
+      Debug.log(`Error thown from: ${fn}`);
+      Debug.log(`Details: ${details}`);
+      throw new Error(errorMessage);
+    }
   }
 
   static parseFactor(): GenericTreeNode {
@@ -79,7 +98,10 @@ export class Parser {
         this.tokenizer.selectNext();
         return node;
       } else {
-        this.throwUnexpectedToken();
+        this.throwUnexpectedToken({
+          fn: "parseFactor",
+          details: "OPEN_PAR",
+        });
       }
     }
 
@@ -89,14 +111,20 @@ export class Parser {
         this.tokenizer.selectNext();
         if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
           this.tokenizer.selectNext();
-          return new Scan()
+          return new Scan();
         }
       }
 
-      this.throwUnexpectedToken();
+      this.throwUnexpectedToken({
+        fn: "parseFactor",
+        details: "READ",
+      });
     }
 
-    this.throwUnexpectedToken();
+    this.throwUnexpectedToken({
+      fn: "parseFactor",
+      details: "ESCAPE",
+    });
   }
 
   static parseTerm(): GenericTreeNode {
@@ -226,7 +254,10 @@ export class Parser {
         }
       }
 
-      this.throwUnexpectedToken();
+      this.throwUnexpectedToken({
+        fn: "parseStatement",
+        details: "IDENTIFIER",
+      });
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.PRINTLN) {
@@ -243,13 +274,16 @@ export class Parser {
         }
       }
 
-      this.throwUnexpectedToken();
+      this.throwUnexpectedToken({
+        fn: "parseStatement",
+        details: "PRINTLN",
+      });
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.WHILE) {
       this.tokenizer.selectNext();
       const booleanExpression = this.parseBooleanExpression();
-      this.tokenizer.selectNext();
+      // this.tokenizer.selectNext();
       const whileNode = new While({
         children: [booleanExpression, this.parseBlock()],
       });
@@ -259,30 +293,39 @@ export class Parser {
         return whileNode;
       }
 
-      this.throwUnexpectedToken();
+      this.throwUnexpectedToken({
+        fn: "parseStatement",
+        details: "WHILE",
+      });
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.IF) {
       this.tokenizer.selectNext();
       const booleanExpression = this.parseBooleanExpression();
-      this.tokenizer.selectNext();
+      // this.tokenizer.selectNext();
       const ifBlock = this.parseBlock();
 
       if (this.tokenizer.getNext().getType() === TokenType.ELSE) {
         this.tokenizer.selectNext();
         const elseBlock = this.parseBlock();
-        this.tokenizer.selectNext();
+        // this.tokenizer.selectNext();
         if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
           return new If({ children: [booleanExpression, ifBlock, elseBlock] });
         } else {
-          this.throwUnexpectedToken();
+          this.throwUnexpectedToken({
+            fn: "parseStatement",
+            details: "ELSE/NEW_LINE",
+          });
         }
       } else if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
         this.tokenizer.selectNext();
         return new If({ children: [booleanExpression, ifBlock] });
       }
 
-      this.throwUnexpectedToken();
+      this.throwUnexpectedToken({
+        fn: "parseStatement",
+        details: "IF",
+      });
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
@@ -290,7 +333,10 @@ export class Parser {
       return new NoOp();
     }
 
-    this.throwUnexpectedToken();
+    this.throwUnexpectedToken({
+      fn: "parseStatement",
+      details: "ESCAPE",
+    });
   }
 
   static parseBlock(): GenericTreeNode {
@@ -304,9 +350,16 @@ export class Parser {
         }
         this.tokenizer.selectNext();
         return new Block({ children: statements });
-      } else this.throwUnexpectedToken();
+      } else
+        this.throwUnexpectedToken({
+          fn: "parseBlock",
+          details: "NEW_LINE",
+        });
     } else {
-      this.throwUnexpectedToken();
+      this.throwUnexpectedToken({
+        fn: "parseBlock",
+        details: "ESCAPE",
+      });
     }
   }
 
