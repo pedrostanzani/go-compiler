@@ -20,14 +20,21 @@ import {
 } from "./Node";
 import { isTruthy } from "../lib/utils";
 
-type Sequence = {
-  items: TokenType[];
-  onFinish: () => GenericTreeNode;
-  throwErrorOnFirstItem?: boolean
-  errorDetails?: {
-    fn: string;
-    details: string
-  }
+type ReadOnlyItems = readonly (TokenType | (() => GenericTreeNode))[];
+
+type StoreFor<Items extends ReadOnlyItems> = {
+  [K in keyof Items]: Items[K] extends TokenType
+    ? Token
+    : Items[K] extends () => GenericTreeNode
+    ? GenericTreeNode
+    : never;
+};
+
+interface Sequence<Items extends ReadOnlyItems> {
+  items: Items;
+  onFinish: (itemsStore: StoreFor<Items>) => GenericTreeNode;
+  throwErrorOnFirstItem?: boolean;
+  errorDetails?: { fn: string; details: string };
 }
 
 export class Parser {
@@ -58,26 +65,39 @@ export class Parser {
     }
   }
 
-  static readSequential({
+  static readSequential<Items extends ReadOnlyItems>({
     throwErrorOnFirstItem = true,
     ...sequence
-  }: Sequence): GenericTreeNode | null {
+  }: Sequence<Items>): GenericTreeNode | null {
+    const itemsStore: Array<Token | GenericTreeNode> = [];
+
     for (let i = 0; i < sequence.items.length; i++) {
       const item = sequence.items[i];
-      if (this.tokenizer.getNext().getType() === item) {
-        this.tokenizer.selectNext();
-        continue;
-      } else if (i === 0 && !throwErrorOnFirstItem) {
-        return null;
+
+      if (typeof item === "string") {
+        if (this.tokenizer.getNext().getType() === item) {
+          itemsStore.push(this.tokenizer.getNext());
+          this.tokenizer.selectNext();
+          continue;
+        } else if (i === 0 && !throwErrorOnFirstItem) {
+          return null;
+        } else {
+          this.throwUnexpectedToken(
+            sequence.errorDetails ?? {
+              fn: "readSequential",
+              details: "GENERIC",
+            }
+          );
+        }
+      } else if (typeof item === "function") {
+        const node = item.call(this);
+        itemsStore.push(node);
       } else {
-        this.throwUnexpectedToken(sequence.errorDetails ?? {
-          fn: "readSequential",
-          details: "GENERIC",
-        });
+        throw new Error("Invalid sequence.");
       }
     }
 
-    return sequence.onFinish();
+    return sequence.onFinish(itemsStore as StoreFor<Items>);
   }
 
   static parseFactor(): GenericTreeNode {
@@ -123,30 +143,34 @@ export class Parser {
       return node;
     }
 
-    if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
-      this.tokenizer.selectNext();
-      const node = this.parseBooleanExpression();
-      if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
-        this.tokenizer.selectNext();
-        return node;
-      } else {
-        this.throwUnexpectedToken({
-          fn: "parseFactor",
-          details: "OPEN_PAR",
-        });
-      }
-    }
+    let node: GenericTreeNode | null;
 
-    const node = this.readSequential({
+    node = this.readSequential({
+      items: [
+        TokenType.OPEN_PAR,
+        this.parseBooleanExpression,
+        TokenType.CLOSE_PAR,
+      ] as const,
+      onFinish: (itemsStore) => {
+        return itemsStore[1];
+      },
+      throwErrorOnFirstItem: false,
+      errorDetails: {
+        fn: "parseFactor",
+        details: "OPEN_PAR",
+      },
+    });
+    if (isTruthy(node)) return node;
+
+    node = this.readSequential({
       items: [TokenType.READ, TokenType.OPEN_PAR, TokenType.CLOSE_PAR],
       onFinish: () => new Scan(),
       throwErrorOnFirstItem: false,
       errorDetails: {
         fn: "parseFactor",
         details: "READ",
-      }
+      },
     });
-    
     if (isTruthy(node)) return node;
 
     this.throwUnexpectedToken({
@@ -266,77 +290,69 @@ export class Parser {
   }
 
   static parseStatement(): GenericTreeNode {
-    if (this.tokenizer.getNext().getType() === TokenType.IDENTIFIER) {
-      const identifier = new Identifier({ token: this.tokenizer.getNext() });
-      this.tokenizer.selectNext();
-      if (this.tokenizer.getNext().getType() === TokenType.ASSIGNMENT) {
-        this.tokenizer.selectNext();
-        const expression = this.parseBooleanExpression();
-        const assignment = new Assignment({
+    let node: GenericTreeNode | null;
+
+    node = this.readSequential({
+      items: [
+        TokenType.IDENTIFIER,
+        TokenType.ASSIGNMENT,
+        this.parseBooleanExpression,
+        TokenType.NEW_LINE,
+      ] as const,
+      onFinish: (itemsStore) => {
+        const [identifierToken, _, expression] = itemsStore;
+        const identifier = new Identifier({ token: identifierToken });
+        return new Assignment({
           children: [identifier, expression],
         });
+      },
+      throwErrorOnFirstItem: false,
+      errorDetails: { fn: "parseStatement", details: "IDENTIFIER" },
+    });
+    if (isTruthy(node)) return node;
 
-        if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
-          this.tokenizer.selectNext();
-          return assignment;
-        }
-      }
+    node = this.readSequential({
+      items: [
+        TokenType.PRINTLN,
+        TokenType.OPEN_PAR,
+        this.parseBooleanExpression,
+        TokenType.CLOSE_PAR,
+        TokenType.NEW_LINE,
+      ] as const,
+      onFinish: (itemsStore) => {
+        const booleanExpression = itemsStore[2];
+        return new Print({ children: [booleanExpression] });
+      },
+      throwErrorOnFirstItem: false,
+      errorDetails: { fn: "parseStatement", details: "PRINTLN" },
+    });
+    if (isTruthy(node)) return node;
 
-      this.throwUnexpectedToken({
-        fn: "parseStatement",
-        details: "IDENTIFIER",
-      });
-    }
-
-    if (this.tokenizer.getNext().getType() === TokenType.PRINTLN) {
-      this.tokenizer.selectNext();
-      if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
-        this.tokenizer.selectNext();
-        const print = new Print({ children: [this.parseBooleanExpression()] });
-        if (this.tokenizer.getNext().getType() === TokenType.CLOSE_PAR) {
-          this.tokenizer.selectNext();
-          if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
-            this.tokenizer.selectNext();
-            return print;
-          }
-        }
-      }
-
-      this.throwUnexpectedToken({
-        fn: "parseStatement",
-        details: "PRINTLN",
-      });
-    }
-
-    if (this.tokenizer.getNext().getType() === TokenType.WHILE) {
-      this.tokenizer.selectNext();
-      const booleanExpression = this.parseBooleanExpression();
-      // this.tokenizer.selectNext();
-      const whileNode = new While({
-        children: [booleanExpression, this.parseBlock()],
-      });
-
-      if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
-        this.tokenizer.selectNext();
-        return whileNode;
-      }
-
-      this.throwUnexpectedToken({
-        fn: "parseStatement",
-        details: "WHILE",
-      });
-    }
+    node = this.readSequential({
+      items: [
+        TokenType.WHILE,
+        this.parseBooleanExpression,
+        this.parseBlock,
+        TokenType.NEW_LINE,
+      ] as const,
+      onFinish: (itemsStore) => {
+        const booleanExpression = itemsStore[1];
+        const block = itemsStore[2];
+        return new While({ children: [booleanExpression, block] });
+      },
+      throwErrorOnFirstItem: false,
+      errorDetails: { fn: "parseStatement", details: "WHILE" },
+    });
+    if (isTruthy(node)) return node;
 
     if (this.tokenizer.getNext().getType() === TokenType.IF) {
       this.tokenizer.selectNext();
       const booleanExpression = this.parseBooleanExpression();
-      // this.tokenizer.selectNext();
       const ifBlock = this.parseBlock();
 
       if (this.tokenizer.getNext().getType() === TokenType.ELSE) {
         this.tokenizer.selectNext();
         const elseBlock = this.parseBlock();
-        // this.tokenizer.selectNext();
         if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
           return new If({ children: [booleanExpression, ifBlock, elseBlock] });
         } else {
