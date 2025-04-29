@@ -82,7 +82,7 @@ var TokenRepresentation;
     TokenRepresentation["VAR"] = "var";
     // Types
     TokenRepresentation["INT"] = "int";
-    TokenRepresentation["STR"] = "str";
+    TokenRepresentation["STR"] = "string";
     TokenRepresentation["BOOL"] = "bool";
     // New line
     TokenRepresentation["NEW_LINE"] = "\n";
