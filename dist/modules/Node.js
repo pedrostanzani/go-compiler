@@ -21,6 +21,21 @@ class BinOp {
                         type: SymbolTable_1.SymbolType.STRING,
                         value: firstValue + secondValue,
                     };
+                case enums_1.TokenType.LESS_THAN:
+                    return {
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue < secondValue,
+                    };
+                case enums_1.TokenType.GREATER_THAN:
+                    return {
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue > secondValue,
+                    };
+                case enums_1.TokenType.EQUALS:
+                    return {
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue === secondValue,
+                    };
                 default:
                     throw new Error(`Invalid operation ${this.value} for operands of type string`);
             }
@@ -219,7 +234,7 @@ class Identifier {
     }
     evaluate(symbolTable) {
         const symbol = symbolTable.get(this.value);
-        if (!(0, utils_1.isTruthy)(symbol.value)) {
+        if (symbol.value === null) {
             throw new Error(`Cannot evaluate uninitialized symbol ${this.value}`);
         }
         return {
@@ -256,7 +271,7 @@ class Print {
     }
     evaluate(symbolTable) {
         const child = this.children[0];
-        console.log(child.evaluate(symbolTable));
+        console.log(child.evaluate(symbolTable).value);
         return {
             type: SymbolTable_1.SymbolType.INT,
             value: 0,
@@ -328,7 +343,7 @@ class While {
     }
     evaluate(symbolTable) {
         const [firstChild, secondChild] = this.children;
-        while (firstChild.evaluate(symbolTable)) {
+        while (firstChild.evaluate(symbolTable).value) {
             secondChild.evaluate(symbolTable);
         }
         return {
@@ -347,7 +362,7 @@ class If {
     }
     evaluate(symbolTable) {
         const [condition, ifBlock, elseBlock] = this.children;
-        if (condition.evaluate(symbolTable)) {
+        if (condition.evaluate(symbolTable).value) {
             ifBlock.evaluate(symbolTable);
         }
         else if ((0, utils_1.isTruthy)(elseBlock)) {
