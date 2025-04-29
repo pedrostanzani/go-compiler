@@ -125,6 +125,10 @@ export class Tokenizer {
         while (this.source[this.position] !== TokenRepresentation.QUOTE) {
           stringValue += this.source[this.position];
           this.position++;
+
+          if (this.position >= this.source.length) {
+            throw new Error("Unexpected EOF while reading string.");
+          }
         }
 
         this.position++;

@@ -103,6 +103,9 @@ class Tokenizer {
                 while (this.source[this.position] !== enums_1.TokenRepresentation.QUOTE) {
                     stringValue += this.source[this.position];
                     this.position++;
+                    if (this.position >= this.source.length) {
+                        throw new Error("Unexpected EOF while reading string.");
+                    }
                 }
                 this.position++;
                 return new Token_1.Token({ type: enums_1.TokenType.STRING, value: stringValue });
