@@ -515,7 +515,12 @@ export class While implements TreeNode<null> {
   evaluate(symbolTable: SymbolTable) {
     const [firstChild, secondChild] = this.children;
 
-    while (firstChild.evaluate(symbolTable).value) {
+    const conditionSymbol = firstChild.evaluate(symbolTable);
+    if (conditionSymbol.type !== SymbolType.BOOL) {
+      throw new Error(`Cannot compute condition with type ${conditionSymbol.type}`);
+    }
+
+    while (conditionSymbol.value) {
       secondChild.evaluate(symbolTable);
     }
 
@@ -538,7 +543,12 @@ export class If implements TreeNode<null> {
   evaluate(symbolTable: SymbolTable) {
     const [condition, ifBlock, elseBlock] = this.children;
 
-    if (condition.evaluate(symbolTable).value) {
+    const conditionSymbol = condition.evaluate(symbolTable);
+    if (conditionSymbol.type !== SymbolType.BOOL) {
+      throw new Error(`Cannot compute condition with type ${conditionSymbol.type}`);
+    }
+
+    if (conditionSymbol.value) {
       ifBlock.evaluate(symbolTable);
     } else if (isTruthy(elseBlock)) {
       elseBlock.evaluate(symbolTable);
