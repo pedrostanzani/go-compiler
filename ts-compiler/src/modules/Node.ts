@@ -55,6 +55,24 @@ export class BinOp implements TreeNode<Operator | LogicalOperator> {
             value: firstValue + secondValue,
           };
 
+        case TokenType.LESS_THAN:
+          return {
+            type: SymbolType.BOOL,
+            value: firstValue < secondValue,
+          };
+
+        case TokenType.GREATER_THAN:
+          return {
+            type: SymbolType.BOOL,
+            value: firstValue > secondValue,
+          };
+
+        case TokenType.EQUALS:
+          return {
+            type: SymbolType.BOOL,
+            value: firstValue === secondValue,
+          };
+
         default:
           throw new Error(
             `Invalid operation ${this.value} for operands of type string`
