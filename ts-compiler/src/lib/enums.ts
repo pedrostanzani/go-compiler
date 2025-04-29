@@ -100,7 +100,7 @@ export enum TokenRepresentation {
 
   // Types
   INT = "int",
-  STR = "str",
+  STR = "string",
   BOOL = "bool",
 
   // New line
