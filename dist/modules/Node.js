@@ -384,13 +384,16 @@ class While {
         this.value = null;
         this.children = children;
     }
-    evaluate(symbolTable) {
-        const [firstChild, secondChild] = this.children;
-        const conditionSymbol = firstChild.evaluate(symbolTable);
+    evaluateAndCheckIfBoolean(node, symbolTable) {
+        const conditionSymbol = node.evaluate(symbolTable);
         if (conditionSymbol.type !== SymbolTable_1.SymbolType.BOOL) {
             throw new Error(`Cannot compute condition with type ${conditionSymbol.type}`);
         }
-        while (conditionSymbol.value) {
+        return conditionSymbol.value;
+    }
+    evaluate(symbolTable) {
+        const [firstChild, secondChild] = this.children;
+        while (this.evaluateAndCheckIfBoolean(firstChild, symbolTable)) {
             secondChild.evaluate(symbolTable);
         }
         return {
