@@ -457,7 +457,7 @@ export class If implements TreeNode<null> {
   evaluate(symbolTable: SymbolTable) {
     const [condition, ifBlock, elseBlock] = this.children;
 
-    if (condition.evaluate(symbolTable)) {
+    if (condition.evaluate(symbolTable).value) {
       ifBlock.evaluate(symbolTable);
     } else if (isTruthy(elseBlock)) {
       elseBlock.evaluate(symbolTable);
