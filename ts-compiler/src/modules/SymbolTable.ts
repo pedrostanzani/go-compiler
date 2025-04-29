@@ -42,7 +42,7 @@ export class SymbolTable {
 
   declare(key: string, type: SymbolType) {
     if (this.table.has(key)) {
-      throw new Error("Variable has already been declared");
+      throw new Error(`Variable ${key} has already been declared`);
     }
 
     this.table.set(key, {
