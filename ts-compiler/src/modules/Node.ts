@@ -342,7 +342,7 @@ export class Print implements TreeNode<null> {
 
   evaluate(symbolTable: SymbolTable) {
     const child = this.children[0];
-    console.log(child.evaluate(symbolTable));
+    console.log(child.evaluate(symbolTable).value);
     return {
       type: SymbolType.INT,
       value: 0,
