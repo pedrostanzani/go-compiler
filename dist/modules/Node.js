@@ -12,31 +12,38 @@ class BinOp {
         this.value = value;
         this.children = children;
     }
-    handleStringOp(a, b) {
-        switch (this.value) {
-            case enums_1.TokenType.PLUS:
-                return {
-                    type: SymbolTable_1.SymbolType.STRING,
-                    value: a + b,
-                };
-            case enums_1.TokenType.LESS_THAN:
-                return {
-                    type: SymbolTable_1.SymbolType.BOOL,
-                    value: a < b,
-                };
-            case enums_1.TokenType.GREATER_THAN:
-                return {
-                    type: SymbolTable_1.SymbolType.BOOL,
-                    value: a > b,
-                };
-            case enums_1.TokenType.EQUALS:
-                return {
-                    type: SymbolTable_1.SymbolType.BOOL,
-                    value: a === b,
-                };
-            default:
-                throw new Error(`Invalid operation ${this.value} for operands of type string`);
+    handleStringOp(a, b, options = {
+        allowComparison: true,
+        errorMessage: `Invalid operation ${this.value} for operands of type string`,
+    }) {
+        if (this.value === enums_1.TokenType.PLUS) {
+            return {
+                type: SymbolTable_1.SymbolType.STRING,
+                value: a + b,
+            };
         }
+        if (!options.allowComparison) {
+            throw new Error(options.errorMessage);
+        }
+        if (this.value === enums_1.TokenType.LESS_THAN) {
+            return {
+                type: SymbolTable_1.SymbolType.BOOL,
+                value: a < b,
+            };
+        }
+        if (this.value === enums_1.TokenType.GREATER_THAN) {
+            return {
+                type: SymbolTable_1.SymbolType.BOOL,
+                value: a > b,
+            };
+        }
+        if (this.value === enums_1.TokenType.EQUALS) {
+            return {
+                type: SymbolTable_1.SymbolType.BOOL,
+                value: a === b,
+            };
+        }
+        throw new Error(options.errorMessage);
     }
     evaluate(symbolTable) {
         const [firstValue, secondValue] = this.children.map((child) => child.evaluate(symbolTable).value);
@@ -44,16 +51,28 @@ class BinOp {
             return this.handleStringOp(firstValue, secondValue);
         }
         if (typeof firstValue === "boolean" && typeof secondValue === "string") {
-            return this.handleStringOp(String(firstValue), secondValue);
+            return this.handleStringOp(String(firstValue), secondValue, {
+                allowComparison: false,
+                errorMessage: `Invalid operation ${this.value} for operands of type boolean and string`,
+            });
         }
         if (typeof firstValue === "string" && typeof secondValue === "boolean") {
-            return this.handleStringOp(firstValue, String(secondValue));
+            return this.handleStringOp(firstValue, String(secondValue), {
+                allowComparison: false,
+                errorMessage: `Invalid operation ${this.value} for operands of type boolean and string`,
+            });
         }
         if (typeof firstValue === "number" && typeof secondValue === "string") {
-            return this.handleStringOp(String(firstValue), secondValue);
+            return this.handleStringOp(String(firstValue), secondValue, {
+                allowComparison: false,
+                errorMessage: `Invalid operation ${this.value} for operands of type number and string`,
+            });
         }
         if (typeof firstValue === "string" && typeof secondValue === "number") {
-            return this.handleStringOp(firstValue, String(secondValue));
+            return this.handleStringOp(firstValue, String(secondValue), {
+                allowComparison: false,
+                errorMessage: `Invalid operation ${this.value} for operands of type number and string`,
+            });
         }
         if (typeof firstValue === "number" && typeof secondValue === "number") {
             switch (this.value) {

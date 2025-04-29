@@ -42,37 +42,50 @@ export class BinOp implements TreeNode<Operator | LogicalOperator> {
     this.children = children;
   }
 
-  handleStringOp(a: string, b: string) {
-    switch (this.value) {
-      case TokenType.PLUS:
-        return {
-          type: SymbolType.STRING,
-          value: a + b,
-        };
-
-      case TokenType.LESS_THAN:
-        return {
-          type: SymbolType.BOOL,
-          value: a < b,
-        };
-
-      case TokenType.GREATER_THAN:
-        return {
-          type: SymbolType.BOOL,
-          value: a > b,
-        };
-
-      case TokenType.EQUALS:
-        return {
-          type: SymbolType.BOOL,
-          value: a === b,
-        };
-
-      default:
-        throw new Error(
-          `Invalid operation ${this.value} for operands of type string`
-        );
+  handleStringOp(
+    a: string,
+    b: string,
+    options: {
+      allowComparison: boolean;
+      errorMessage?: string;
+    } = {
+      allowComparison: true,
+      errorMessage: `Invalid operation ${this.value} for operands of type string`,
     }
+  ) {
+    if (this.value === TokenType.PLUS) {
+      return {
+        type: SymbolType.STRING,
+        value: a + b,
+      };
+    }
+
+    if (!options.allowComparison) {
+      throw new Error(options.errorMessage);
+    }
+
+    if (this.value === TokenType.LESS_THAN) {
+      return {
+        type: SymbolType.BOOL,
+        value: a < b,
+      };
+    }
+
+    if (this.value === TokenType.GREATER_THAN) {
+      return {
+        type: SymbolType.BOOL,
+        value: a > b,
+      };
+    }
+
+    if (this.value === TokenType.EQUALS) {
+      return {
+        type: SymbolType.BOOL,
+        value: a === b,
+      };
+    }
+
+    throw new Error(options.errorMessage);
   }
 
   evaluate(symbolTable: SymbolTable) {
@@ -85,19 +98,31 @@ export class BinOp implements TreeNode<Operator | LogicalOperator> {
     }
 
     if (typeof firstValue === "boolean" && typeof secondValue === "string") {
-      return this.handleStringOp(String(firstValue), secondValue);
+      return this.handleStringOp(String(firstValue), secondValue, {
+        allowComparison: false,
+        errorMessage: `Invalid operation ${this.value} for operands of type boolean and string`,
+      });
     }
 
     if (typeof firstValue === "string" && typeof secondValue === "boolean") {
-      return this.handleStringOp(firstValue, String(secondValue));
+      return this.handleStringOp(firstValue, String(secondValue), {
+        allowComparison: false,
+        errorMessage: `Invalid operation ${this.value} for operands of type boolean and string`,
+      });
     }
 
     if (typeof firstValue === "number" && typeof secondValue === "string") {
-      return this.handleStringOp(String(firstValue), secondValue);
+      return this.handleStringOp(String(firstValue), secondValue, {
+        allowComparison: false,
+        errorMessage: `Invalid operation ${this.value} for operands of type number and string`,
+      });
     }
 
     if (typeof firstValue === "string" && typeof secondValue === "number") {
-      return this.handleStringOp(firstValue, String(secondValue));
+      return this.handleStringOp(firstValue, String(secondValue), {
+        allowComparison: false,
+        errorMessage: `Invalid operation ${this.value} for operands of type number and string`,
+      });
     }
 
     if (typeof firstValue === "number" && typeof secondValue === "number") {
