@@ -299,7 +299,7 @@ export class Identifier implements TreeNode<string> {
   evaluate(symbolTable: SymbolTable) {
     const symbol = symbolTable.get(this.value);
 
-    if (!isTruthy(symbol.value)) {
+    if (symbol.value === null) {
       throw new Error(`Cannot evaluate uninitialized symbol ${this.value}`);
     }
 
