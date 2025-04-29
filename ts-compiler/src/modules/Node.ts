@@ -223,6 +223,15 @@ export class BinOp implements TreeNode<Operator | LogicalOperator> {
       }
     }
 
+    if (
+      (typeof firstValue === "number" && typeof secondValue === "boolean") ||
+      (typeof firstValue === "boolean" && typeof secondValue === "number")
+    ) {
+      throw new Error(
+        `Invalid operation ${this.value} for operands of type number and boolean`
+      );
+    }
+
     return {
       type: SymbolType.INT,
       value: 0,
@@ -259,7 +268,15 @@ export class UnOp
     } else if (this.value === TokenType.PLUS) {
       return child.evaluate(symbolTable);
     } else {
-      return child.evaluate(symbolTable)
+      const symbol = child.evaluate(symbolTable);
+
+      if (symbol.type === SymbolType.INT) {
+        throw new Error(
+          `Invalid operation ${this.value} for operand of type number`
+        );
+      }
+
+      return !symbol.value
         ? {
             type: SymbolType.BOOL,
             value: true,

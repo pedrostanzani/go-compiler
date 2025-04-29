@@ -156,6 +156,10 @@ class BinOp {
                     break;
             }
         }
+        if ((typeof firstValue === "number" && typeof secondValue === "boolean") ||
+            (typeof firstValue === "boolean" && typeof secondValue === "number")) {
+            throw new Error(`Invalid operation ${this.value} for operands of type number and boolean`);
+        }
         return {
             type: SymbolTable_1.SymbolType.INT,
             value: 0,
@@ -183,7 +187,11 @@ class UnOp {
             return child.evaluate(symbolTable);
         }
         else {
-            return child.evaluate(symbolTable)
+            const symbol = child.evaluate(symbolTable);
+            if (symbol.type === SymbolTable_1.SymbolType.INT) {
+                throw new Error(`Invalid operation ${this.value} for operand of type number`);
+            }
+            return !symbol.value
                 ? {
                     type: SymbolTable_1.SymbolType.BOOL,
                     value: true,
@@ -421,7 +429,7 @@ class Scan {
     evaluate(_) {
         return {
             type: SymbolTable_1.SymbolType.INT,
-            value: Scan.input.get(),
+            value: Number(Scan.input.get()),
         };
     }
 }
