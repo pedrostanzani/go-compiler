@@ -548,7 +548,7 @@ export class Scan implements TreeNode<null> {
   evaluate(_: SymbolTable) {
     return {
       type: SymbolType.INT,
-      value: Scan.input.get(),
+      value: Number(Scan.input.get()),
     };
   }
 }
