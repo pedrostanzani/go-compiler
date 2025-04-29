@@ -434,7 +434,7 @@ export class While implements TreeNode<null> {
   evaluate(symbolTable: SymbolTable) {
     const [firstChild, secondChild] = this.children;
 
-    while (firstChild.evaluate(symbolTable)) {
+    while (firstChild.evaluate(symbolTable).value) {
       secondChild.evaluate(symbolTable);
     }
 
