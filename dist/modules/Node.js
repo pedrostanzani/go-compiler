@@ -277,7 +277,6 @@ class Assignment {
             throw new Error("Cannot assign to literal");
         }
         const secondChildSymbol = secondChild.evaluate(symbolTable);
-        symbolTable.declare(firstChild.value, secondChildSymbol.type);
         symbolTable.setSymbol(firstChild.value, secondChildSymbol);
         return {
             type: SymbolTable_1.SymbolType.INT,
