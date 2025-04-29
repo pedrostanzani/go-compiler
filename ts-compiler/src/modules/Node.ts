@@ -366,7 +366,6 @@ export class Assignment implements TreeNode<null> {
     }
 
     const secondChildSymbol = secondChild.evaluate(symbolTable);
-    symbolTable.declare(firstChild.value, secondChildSymbol.type);
     symbolTable.setSymbol(firstChild.value, secondChildSymbol);
 
     return {
