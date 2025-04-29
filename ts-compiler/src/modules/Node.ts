@@ -42,42 +42,54 @@ export class BinOp implements TreeNode<Operator | LogicalOperator> {
     this.children = children;
   }
 
+  handleStringOp(a: string, b: string) {
+    switch (this.value) {
+      case TokenType.PLUS:
+        return {
+          type: SymbolType.STRING,
+          value: a + b,
+        };
+
+      case TokenType.LESS_THAN:
+        return {
+          type: SymbolType.BOOL,
+          value: a < b,
+        };
+
+      case TokenType.GREATER_THAN:
+        return {
+          type: SymbolType.BOOL,
+          value: a > b,
+        };
+
+      case TokenType.EQUALS:
+        return {
+          type: SymbolType.BOOL,
+          value: a === b,
+        };
+
+      default:
+        throw new Error(
+          `Invalid operation ${this.value} for operands of type string`
+        );
+    }
+  }
+
   evaluate(symbolTable: SymbolTable) {
     const [firstValue, secondValue] = this.children.map(
       (child) => child.evaluate(symbolTable).value
     );
 
     if (typeof firstValue === "string" && typeof secondValue === "string") {
-      switch (this.value) {
-        case TokenType.PLUS:
-          return {
-            type: SymbolType.STRING,
-            value: firstValue + secondValue,
-          };
+      return this.handleStringOp(firstValue, secondValue);
+    }
 
-        case TokenType.LESS_THAN:
-          return {
-            type: SymbolType.BOOL,
-            value: firstValue < secondValue,
-          };
+    if (typeof firstValue === "boolean" && typeof secondValue === "string") {
+      return this.handleStringOp(String(firstValue), secondValue);
+    }
 
-        case TokenType.GREATER_THAN:
-          return {
-            type: SymbolType.BOOL,
-            value: firstValue > secondValue,
-          };
-
-        case TokenType.EQUALS:
-          return {
-            type: SymbolType.BOOL,
-            value: firstValue === secondValue,
-          };
-
-        default:
-          throw new Error(
-            `Invalid operation ${this.value} for operands of type string`
-          );
-      }
+    if (typeof firstValue === "string" && typeof secondValue === "boolean") {
+      return this.handleStringOp(firstValue, String(secondValue));
     }
 
     if (typeof firstValue === "number" && typeof secondValue === "number") {
@@ -108,32 +120,32 @@ export class BinOp implements TreeNode<Operator | LogicalOperator> {
 
         case TokenType.OR:
           return {
-            type: SymbolType.INT,
-            value: firstValue || secondValue ? 1 : 0,
+            type: SymbolType.BOOL,
+            value: firstValue || secondValue ? true : false,
           };
 
         case TokenType.AND:
           return {
-            type: SymbolType.INT,
-            value: firstValue && secondValue ? 1 : 0,
+            type: SymbolType.BOOL,
+            value: firstValue && secondValue ? true : false,
           };
 
         case TokenType.EQUALS:
           return {
-            type: SymbolType.INT,
-            value: firstValue == secondValue ? 1 : 0,
+            type: SymbolType.BOOL,
+            value: firstValue == secondValue ? true : false,
           };
 
         case TokenType.GREATER_THAN:
           return {
-            type: SymbolType.INT,
-            value: firstValue > secondValue ? 1 : 0,
+            type: SymbolType.BOOL,
+            value: firstValue > secondValue ? true : false,
           };
 
         case TokenType.LESS_THAN:
           return {
-            type: SymbolType.INT,
-            value: firstValue < secondValue ? 1 : 0,
+            type: SymbolType.BOOL,
+            value: firstValue < secondValue ? true : false,
           };
 
         default:
@@ -145,32 +157,32 @@ export class BinOp implements TreeNode<Operator | LogicalOperator> {
       switch (this.value) {
         case TokenType.OR:
           return {
-            type: SymbolType.INT,
-            value: firstValue || secondValue ? 1 : 0,
+            type: SymbolType.BOOL,
+            value: firstValue || secondValue ? true : false,
           };
 
         case TokenType.AND:
           return {
-            type: SymbolType.INT,
-            value: firstValue && secondValue ? 1 : 0,
+            type: SymbolType.BOOL,
+            value: firstValue && secondValue ? true : false,
           };
 
         case TokenType.EQUALS:
           return {
-            type: SymbolType.INT,
-            value: firstValue == secondValue ? 1 : 0,
+            type: SymbolType.BOOL,
+            value: firstValue == secondValue ? true : false,
           };
 
         case TokenType.GREATER_THAN:
           return {
-            type: SymbolType.INT,
-            value: firstValue > secondValue ? 1 : 0,
+            type: SymbolType.BOOL,
+            value: firstValue > secondValue ? true : false,
           };
 
         case TokenType.LESS_THAN:
           return {
-            type: SymbolType.INT,
-            value: firstValue < secondValue ? 1 : 0,
+            type: SymbolType.BOOL,
+            value: firstValue < secondValue ? true : false,
           };
 
         default:

@@ -12,33 +12,42 @@ class BinOp {
         this.value = value;
         this.children = children;
     }
+    handleStringOp(a, b) {
+        switch (this.value) {
+            case enums_1.TokenType.PLUS:
+                return {
+                    type: SymbolTable_1.SymbolType.STRING,
+                    value: a + b,
+                };
+            case enums_1.TokenType.LESS_THAN:
+                return {
+                    type: SymbolTable_1.SymbolType.BOOL,
+                    value: a < b,
+                };
+            case enums_1.TokenType.GREATER_THAN:
+                return {
+                    type: SymbolTable_1.SymbolType.BOOL,
+                    value: a > b,
+                };
+            case enums_1.TokenType.EQUALS:
+                return {
+                    type: SymbolTable_1.SymbolType.BOOL,
+                    value: a === b,
+                };
+            default:
+                throw new Error(`Invalid operation ${this.value} for operands of type string`);
+        }
+    }
     evaluate(symbolTable) {
         const [firstValue, secondValue] = this.children.map((child) => child.evaluate(symbolTable).value);
         if (typeof firstValue === "string" && typeof secondValue === "string") {
-            switch (this.value) {
-                case enums_1.TokenType.PLUS:
-                    return {
-                        type: SymbolTable_1.SymbolType.STRING,
-                        value: firstValue + secondValue,
-                    };
-                case enums_1.TokenType.LESS_THAN:
-                    return {
-                        type: SymbolTable_1.SymbolType.BOOL,
-                        value: firstValue < secondValue,
-                    };
-                case enums_1.TokenType.GREATER_THAN:
-                    return {
-                        type: SymbolTable_1.SymbolType.BOOL,
-                        value: firstValue > secondValue,
-                    };
-                case enums_1.TokenType.EQUALS:
-                    return {
-                        type: SymbolTable_1.SymbolType.BOOL,
-                        value: firstValue === secondValue,
-                    };
-                default:
-                    throw new Error(`Invalid operation ${this.value} for operands of type string`);
-            }
+            return this.handleStringOp(firstValue, secondValue);
+        }
+        if (typeof firstValue === "boolean" && typeof secondValue === "string") {
+            return this.handleStringOp(String(firstValue), secondValue);
+        }
+        if (typeof firstValue === "string" && typeof secondValue === "boolean") {
+            return this.handleStringOp(firstValue, String(secondValue));
         }
         if (typeof firstValue === "number" && typeof secondValue === "number") {
             switch (this.value) {
@@ -64,28 +73,28 @@ class BinOp {
                     };
                 case enums_1.TokenType.OR:
                     return {
-                        type: SymbolTable_1.SymbolType.INT,
-                        value: firstValue || secondValue ? 1 : 0,
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue || secondValue ? true : false,
                     };
                 case enums_1.TokenType.AND:
                     return {
-                        type: SymbolTable_1.SymbolType.INT,
-                        value: firstValue && secondValue ? 1 : 0,
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue && secondValue ? true : false,
                     };
                 case enums_1.TokenType.EQUALS:
                     return {
-                        type: SymbolTable_1.SymbolType.INT,
-                        value: firstValue == secondValue ? 1 : 0,
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue == secondValue ? true : false,
                     };
                 case enums_1.TokenType.GREATER_THAN:
                     return {
-                        type: SymbolTable_1.SymbolType.INT,
-                        value: firstValue > secondValue ? 1 : 0,
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue > secondValue ? true : false,
                     };
                 case enums_1.TokenType.LESS_THAN:
                     return {
-                        type: SymbolTable_1.SymbolType.INT,
-                        value: firstValue < secondValue ? 1 : 0,
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue < secondValue ? true : false,
                     };
                 default:
                     break;
@@ -95,28 +104,28 @@ class BinOp {
             switch (this.value) {
                 case enums_1.TokenType.OR:
                     return {
-                        type: SymbolTable_1.SymbolType.INT,
-                        value: firstValue || secondValue ? 1 : 0,
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue || secondValue ? true : false,
                     };
                 case enums_1.TokenType.AND:
                     return {
-                        type: SymbolTable_1.SymbolType.INT,
-                        value: firstValue && secondValue ? 1 : 0,
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue && secondValue ? true : false,
                     };
                 case enums_1.TokenType.EQUALS:
                     return {
-                        type: SymbolTable_1.SymbolType.INT,
-                        value: firstValue == secondValue ? 1 : 0,
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue == secondValue ? true : false,
                     };
                 case enums_1.TokenType.GREATER_THAN:
                     return {
-                        type: SymbolTable_1.SymbolType.INT,
-                        value: firstValue > secondValue ? 1 : 0,
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue > secondValue ? true : false,
                     };
                 case enums_1.TokenType.LESS_THAN:
                     return {
-                        type: SymbolTable_1.SymbolType.INT,
-                        value: firstValue < secondValue ? 1 : 0,
+                        type: SymbolTable_1.SymbolType.BOOL,
+                        value: firstValue < secondValue ? true : false,
                     };
                 default:
                     break;
