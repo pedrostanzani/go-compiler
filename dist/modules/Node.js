@@ -49,6 +49,12 @@ class BinOp {
         if (typeof firstValue === "string" && typeof secondValue === "boolean") {
             return this.handleStringOp(firstValue, String(secondValue));
         }
+        if (typeof firstValue === "number" && typeof secondValue === "string") {
+            return this.handleStringOp(String(firstValue), secondValue);
+        }
+        if (typeof firstValue === "string" && typeof secondValue === "number") {
+            return this.handleStringOp(firstValue, String(secondValue));
+        }
         if (typeof firstValue === "number" && typeof secondValue === "number") {
             switch (this.value) {
                 case enums_1.TokenType.PLUS:
@@ -280,6 +286,7 @@ class Print {
     }
     evaluate(symbolTable) {
         const child = this.children[0];
+        // console.log("--->", symbolTable)
         console.log(child.evaluate(symbolTable).value);
         return {
             type: SymbolTable_1.SymbolType.INT,
