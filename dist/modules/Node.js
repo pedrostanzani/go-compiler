@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Scan = exports.If = exports.While = exports.Assignment = exports.Print = exports.Block = exports.Identifier = exports.NoOp = exports.IntVal = exports.UnOp = exports.BinOp = void 0;
+exports.Scan = exports.If = exports.While = exports.VarDec = exports.Assignment = exports.Print = exports.Block = exports.Identifier = exports.NoOp = exports.BoolVal = exports.StringVal = exports.IntVal = exports.UnOp = exports.BinOp = void 0;
 const enums_1 = require("../lib/enums");
 const input_1 = require("../lib/input");
 const utils_1 = require("../lib/utils");
+const SymbolTable_1 = require("./SymbolTable");
 class BinOp {
     value;
     children;
@@ -12,45 +13,104 @@ class BinOp {
         this.children = children;
     }
     evaluate(symbolTable) {
-        const [firstChild, secondChild] = this.children;
-        switch (this.value) {
-            case enums_1.TokenType.PLUS:
-                return (firstChild.evaluate(symbolTable) + secondChild.evaluate(symbolTable));
-            case enums_1.TokenType.MINUS:
-                return (firstChild.evaluate(symbolTable) - secondChild.evaluate(symbolTable));
-            case enums_1.TokenType.DIVIDE:
-                return Math.floor(firstChild.evaluate(symbolTable) / secondChild.evaluate(symbolTable));
-            case enums_1.TokenType.X:
-                return (firstChild.evaluate(symbolTable) * secondChild.evaluate(symbolTable));
-            case enums_1.TokenType.OR:
-                return firstChild.evaluate(symbolTable) ||
-                    secondChild.evaluate(symbolTable)
-                    ? 1
-                    : 0;
-            case enums_1.TokenType.AND:
-                return firstChild.evaluate(symbolTable) &&
-                    secondChild.evaluate(symbolTable)
-                    ? 1
-                    : 0;
-            case enums_1.TokenType.EQUALS:
-                return firstChild.evaluate(symbolTable) ==
-                    secondChild.evaluate(symbolTable)
-                    ? 1
-                    : 0;
-            case enums_1.TokenType.GREATER_THAN:
-                return firstChild.evaluate(symbolTable) >
-                    secondChild.evaluate(symbolTable)
-                    ? 1
-                    : 0;
-            case enums_1.TokenType.LESS_THAN:
-                return firstChild.evaluate(symbolTable) <
-                    secondChild.evaluate(symbolTable)
-                    ? 1
-                    : 0;
-            default:
-                break;
+        const [firstValue, secondValue] = this.children.map((child) => child.evaluate(symbolTable).value);
+        if (typeof firstValue === "string" && typeof secondValue === "string") {
+            switch (this.value) {
+                case enums_1.TokenType.PLUS:
+                    return {
+                        type: SymbolTable_1.SymbolType.STRING,
+                        value: firstValue + secondValue,
+                    };
+                default:
+                    throw new Error(`Invalid operation ${this.value} for operands of type string`);
+            }
         }
-        return 0;
+        if (typeof firstValue === "number" && typeof secondValue === "number") {
+            switch (this.value) {
+                case enums_1.TokenType.PLUS:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue + secondValue,
+                    };
+                case enums_1.TokenType.MINUS:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue - secondValue,
+                    };
+                case enums_1.TokenType.DIVIDE:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: Math.floor(firstValue / secondValue),
+                    };
+                case enums_1.TokenType.X:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue * secondValue,
+                    };
+                case enums_1.TokenType.OR:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue || secondValue ? 1 : 0,
+                    };
+                case enums_1.TokenType.AND:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue && secondValue ? 1 : 0,
+                    };
+                case enums_1.TokenType.EQUALS:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue == secondValue ? 1 : 0,
+                    };
+                case enums_1.TokenType.GREATER_THAN:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue > secondValue ? 1 : 0,
+                    };
+                case enums_1.TokenType.LESS_THAN:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue < secondValue ? 1 : 0,
+                    };
+                default:
+                    break;
+            }
+        }
+        if (typeof firstValue === "boolean" && typeof secondValue === "boolean") {
+            switch (this.value) {
+                case enums_1.TokenType.OR:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue || secondValue ? 1 : 0,
+                    };
+                case enums_1.TokenType.AND:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue && secondValue ? 1 : 0,
+                    };
+                case enums_1.TokenType.EQUALS:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue == secondValue ? 1 : 0,
+                    };
+                case enums_1.TokenType.GREATER_THAN:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue > secondValue ? 1 : 0,
+                    };
+                case enums_1.TokenType.LESS_THAN:
+                    return {
+                        type: SymbolTable_1.SymbolType.INT,
+                        value: firstValue < secondValue ? 1 : 0,
+                    };
+                default:
+                    break;
+            }
+        }
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: 0,
+        };
     }
 }
 exports.BinOp = BinOp;
@@ -64,13 +124,25 @@ class UnOp {
     evaluate(symbolTable) {
         const child = this.children[0];
         if (this.value === enums_1.TokenType.MINUS) {
-            return -child.evaluate(symbolTable);
+            const childEval = child.evaluate(symbolTable);
+            return {
+                ...childEval,
+                value: -childEval.value,
+            };
         }
         else if (this.value === enums_1.TokenType.PLUS) {
             return child.evaluate(symbolTable);
         }
         else {
-            return !child.evaluate(symbolTable) ? 1 : 0;
+            return child.evaluate(symbolTable)
+                ? {
+                    type: SymbolTable_1.SymbolType.BOOL,
+                    value: true,
+                }
+                : {
+                    type: SymbolTable_1.SymbolType.BOOL,
+                    value: false,
+                };
         }
     }
 }
@@ -83,10 +155,43 @@ class IntVal {
         this.children = children;
     }
     evaluate() {
-        return this.value;
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: this.value,
+        };
     }
 }
 exports.IntVal = IntVal;
+class StringVal {
+    value;
+    children;
+    constructor({ value }) {
+        this.value = value;
+        this.children = [];
+    }
+    evaluate() {
+        return {
+            type: SymbolTable_1.SymbolType.STRING,
+            value: this.value,
+        };
+    }
+}
+exports.StringVal = StringVal;
+class BoolVal {
+    value;
+    children;
+    constructor({ value }) {
+        this.value = value;
+        this.children = [];
+    }
+    evaluate() {
+        return {
+            type: SymbolTable_1.SymbolType.BOOL,
+            value: this.value,
+        };
+    }
+}
+exports.BoolVal = BoolVal;
 class NoOp {
     value;
     children;
@@ -95,7 +200,10 @@ class NoOp {
         this.children = [];
     }
     evaluate() {
-        return this.value ?? 0;
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: this.value ?? 0,
+        };
     }
 }
 exports.NoOp = NoOp;
@@ -110,7 +218,14 @@ class Identifier {
         this.children = [];
     }
     evaluate(symbolTable) {
-        return symbolTable.get(this.value);
+        const symbol = symbolTable.get(this.value);
+        if (!(0, utils_1.isTruthy)(symbol.value)) {
+            throw new Error(`Cannot evaluate uninitialized symbol ${this.value}`);
+        }
+        return {
+            type: symbol.type,
+            value: symbol.value,
+        };
     }
 }
 exports.Identifier = Identifier;
@@ -125,7 +240,10 @@ class Block {
         this.children.forEach((child) => {
             child.evaluate(symbolTable);
         });
-        return 0;
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: 0,
+        };
     }
 }
 exports.Block = Block;
@@ -139,7 +257,10 @@ class Print {
     evaluate(symbolTable) {
         const child = this.children[0];
         console.log(child.evaluate(symbolTable));
-        return 0;
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: 0,
+        };
     }
 }
 exports.Print = Print;
@@ -155,11 +276,50 @@ class Assignment {
         if (typeof firstChild.value !== "string") {
             throw new Error("Cannot assign to literal");
         }
-        symbolTable.set(firstChild.value, secondChild.evaluate(symbolTable));
-        return 0;
+        const secondChildSymbol = secondChild.evaluate(symbolTable);
+        symbolTable.declare(firstChild.value, secondChildSymbol.type);
+        symbolTable.setSymbol(firstChild.value, secondChildSymbol);
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: 0,
+        };
     }
 }
 exports.Assignment = Assignment;
+class VarDec {
+    value;
+    children;
+    constructor({ children, value, }) {
+        this.value = value;
+        this.children = children;
+    }
+    evaluate(symbolTable) {
+        if (this.children.length === 1) {
+            const child = this.children[0];
+            if (typeof child.value !== "string") {
+                throw new Error("Cannot assign to literal");
+            }
+            symbolTable.declare(child.value, this.value);
+        }
+        else {
+            const [firstChild, secondChild] = this.children;
+            if (typeof firstChild.value !== "string") {
+                throw new Error("Cannot assign to literal");
+            }
+            const secondChildSymbol = secondChild.evaluate(symbolTable);
+            if (secondChildSymbol.type !== this.value) {
+                throw new Error(`Cannot assign ${secondChildSymbol.type} to ${this.value} variable`);
+            }
+            symbolTable.declare(firstChild.value, secondChildSymbol.type);
+            symbolTable.setSymbol(firstChild.value, secondChildSymbol);
+        }
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: 0,
+        };
+    }
+}
+exports.VarDec = VarDec;
 class While {
     value;
     children;
@@ -172,7 +332,10 @@ class While {
         while (firstChild.evaluate(symbolTable)) {
             secondChild.evaluate(symbolTable);
         }
-        return 0;
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: 0,
+        };
     }
 }
 exports.While = While;
@@ -191,7 +354,10 @@ class If {
         else if ((0, utils_1.isTruthy)(elseBlock)) {
             elseBlock.evaluate(symbolTable);
         }
-        return 0;
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: 0,
+        };
     }
 }
 exports.If = If;
@@ -203,8 +369,11 @@ class Scan {
         this.value = null;
         this.children = [];
     }
-    evaluate(symbolTable) {
-        return Number(Scan.input.get());
+    evaluate(_) {
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: Scan.input.get(),
+        };
     }
 }
 exports.Scan = Scan;

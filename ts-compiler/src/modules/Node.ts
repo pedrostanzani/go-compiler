@@ -1,7 +1,7 @@
 import { TokenType } from "../lib/enums";
 import { Input } from "../lib/input";
 import { isTruthy } from "../lib/utils";
-import { SymbolTable } from "./SymbolTable";
+import { InitializedSymbol, SymbolTable, SymbolType } from "./SymbolTable";
 import { Token } from "./Token";
 
 type LogicalOperator =
@@ -17,12 +17,12 @@ type Operator =
   | TokenType.X
   | TokenType.DIVIDE;
 
-type Variant = number | string | Operator | null;
+type Variant = number | string | boolean | Operator | null;
 
 export interface TreeNode<V> {
   value: V;
   children: TreeNode<Variant>[];
-  evaluate: (symbolTable: SymbolTable) => number;
+  evaluate: (symbolTable: SymbolTable) => InitializedSymbol;
 }
 
 export type GenericTreeNode = TreeNode<Variant>;
@@ -43,64 +43,127 @@ export class BinOp implements TreeNode<Operator | LogicalOperator> {
   }
 
   evaluate(symbolTable: SymbolTable) {
-    const [firstChild, secondChild] = this.children;
+    const [firstValue, secondValue] = this.children.map(
+      (child) => child.evaluate(symbolTable).value
+    );
 
-    switch (this.value) {
-      case TokenType.PLUS:
-        return (
-          firstChild.evaluate(symbolTable) + secondChild.evaluate(symbolTable)
-        );
+    if (typeof firstValue === "string" && typeof secondValue === "string") {
+      switch (this.value) {
+        case TokenType.PLUS:
+          return {
+            type: SymbolType.STRING,
+            value: firstValue + secondValue,
+          };
 
-      case TokenType.MINUS:
-        return (
-          firstChild.evaluate(symbolTable) - secondChild.evaluate(symbolTable)
-        );
-
-      case TokenType.DIVIDE:
-        return Math.floor(
-          firstChild.evaluate(symbolTable) / secondChild.evaluate(symbolTable)
-        );
-
-      case TokenType.X:
-        return (
-          firstChild.evaluate(symbolTable) * secondChild.evaluate(symbolTable)
-        );
-
-      case TokenType.OR:
-        return firstChild.evaluate(symbolTable) ||
-          secondChild.evaluate(symbolTable)
-          ? 1
-          : 0;
-
-      case TokenType.AND:
-        return firstChild.evaluate(symbolTable) &&
-          secondChild.evaluate(symbolTable)
-          ? 1
-          : 0;
-
-      case TokenType.EQUALS:
-        return firstChild.evaluate(symbolTable) ==
-          secondChild.evaluate(symbolTable)
-          ? 1
-          : 0;
-
-      case TokenType.GREATER_THAN:
-        return firstChild.evaluate(symbolTable) >
-          secondChild.evaluate(symbolTable)
-          ? 1
-          : 0;
-
-      case TokenType.LESS_THAN:
-        return firstChild.evaluate(symbolTable) <
-          secondChild.evaluate(symbolTable)
-          ? 1
-          : 0;
-
-      default:
-        break;
+        default:
+          throw new Error(
+            `Invalid operation ${this.value} for operands of type string`
+          );
+      }
     }
 
-    return 0;
+    if (typeof firstValue === "number" && typeof secondValue === "number") {
+      switch (this.value) {
+        case TokenType.PLUS:
+          return {
+            type: SymbolType.INT,
+            value: firstValue + secondValue,
+          };
+
+        case TokenType.MINUS:
+          return {
+            type: SymbolType.INT,
+            value: firstValue - secondValue,
+          };
+
+        case TokenType.DIVIDE:
+          return {
+            type: SymbolType.INT,
+            value: Math.floor(firstValue / secondValue),
+          };
+
+        case TokenType.X:
+          return {
+            type: SymbolType.INT,
+            value: firstValue * secondValue,
+          };
+
+        case TokenType.OR:
+          return {
+            type: SymbolType.INT,
+            value: firstValue || secondValue ? 1 : 0,
+          };
+
+        case TokenType.AND:
+          return {
+            type: SymbolType.INT,
+            value: firstValue && secondValue ? 1 : 0,
+          };
+
+        case TokenType.EQUALS:
+          return {
+            type: SymbolType.INT,
+            value: firstValue == secondValue ? 1 : 0,
+          };
+
+        case TokenType.GREATER_THAN:
+          return {
+            type: SymbolType.INT,
+            value: firstValue > secondValue ? 1 : 0,
+          };
+
+        case TokenType.LESS_THAN:
+          return {
+            type: SymbolType.INT,
+            value: firstValue < secondValue ? 1 : 0,
+          };
+
+        default:
+          break;
+      }
+    }
+
+    if (typeof firstValue === "boolean" && typeof secondValue === "boolean") {
+      switch (this.value) {
+        case TokenType.OR:
+          return {
+            type: SymbolType.INT,
+            value: firstValue || secondValue ? 1 : 0,
+          };
+
+        case TokenType.AND:
+          return {
+            type: SymbolType.INT,
+            value: firstValue && secondValue ? 1 : 0,
+          };
+
+        case TokenType.EQUALS:
+          return {
+            type: SymbolType.INT,
+            value: firstValue == secondValue ? 1 : 0,
+          };
+
+        case TokenType.GREATER_THAN:
+          return {
+            type: SymbolType.INT,
+            value: firstValue > secondValue ? 1 : 0,
+          };
+
+        case TokenType.LESS_THAN:
+          return {
+            type: SymbolType.INT,
+            value: firstValue < secondValue ? 1 : 0,
+          };
+
+        default:
+          break;
+      }
+    }
+
+    return {
+      type: SymbolType.INT,
+      value: 0,
+    };
   }
 }
 
@@ -125,11 +188,23 @@ export class UnOp
     const child = this.children[0];
 
     if (this.value === TokenType.MINUS) {
-      return -child.evaluate(symbolTable);
+      const childEval = child.evaluate(symbolTable);
+      return {
+        ...childEval,
+        value: -childEval.value,
+      };
     } else if (this.value === TokenType.PLUS) {
       return child.evaluate(symbolTable);
     } else {
-      return !child.evaluate(symbolTable) ? 1 : 0;
+      return child.evaluate(symbolTable)
+        ? {
+            type: SymbolType.BOOL,
+            value: true,
+          }
+        : {
+            type: SymbolType.BOOL,
+            value: false,
+          };
     }
   }
 }
@@ -150,7 +225,44 @@ export class IntVal implements TreeNode<number> {
   }
 
   evaluate() {
-    return this.value;
+    return {
+      type: SymbolType.INT,
+      value: this.value,
+    };
+  }
+}
+
+export class StringVal implements TreeNode<string> {
+  value: string;
+  children: TreeNode<never>[];
+
+  constructor({ value }: { value: string }) {
+    this.value = value;
+    this.children = [];
+  }
+
+  evaluate() {
+    return {
+      type: SymbolType.STRING,
+      value: this.value,
+    };
+  }
+}
+
+export class BoolVal implements TreeNode<boolean> {
+  value: boolean;
+  children: TreeNode<never>[];
+
+  constructor({ value }: { value: boolean }) {
+    this.value = value;
+    this.children = [];
+  }
+
+  evaluate() {
+    return {
+      type: SymbolType.BOOL,
+      value: this.value,
+    };
   }
 }
 
@@ -164,7 +276,10 @@ export class NoOp implements TreeNode<null> {
   }
 
   evaluate() {
-    return this.value ?? 0;
+    return {
+      type: SymbolType.INT,
+      value: this.value ?? 0,
+    };
   }
 }
 
@@ -182,7 +297,16 @@ export class Identifier implements TreeNode<string> {
   }
 
   evaluate(symbolTable: SymbolTable) {
-    return symbolTable.get(this.value);
+    const symbol = symbolTable.get(this.value);
+
+    if (!isTruthy(symbol.value)) {
+      throw new Error(`Cannot evaluate uninitialized symbol ${this.value}`);
+    }
+
+    return {
+      type: symbol.type,
+      value: symbol.value,
+    };
   }
 }
 
@@ -200,7 +324,10 @@ export class Block implements TreeNode<null> {
       child.evaluate(symbolTable);
     });
 
-    return 0;
+    return {
+      type: SymbolType.INT,
+      value: 0,
+    };
   }
 }
 
@@ -216,7 +343,10 @@ export class Print implements TreeNode<null> {
   evaluate(symbolTable: SymbolTable) {
     const child = this.children[0];
     console.log(child.evaluate(symbolTable));
-    return 0;
+    return {
+      type: SymbolType.INT,
+      value: 0,
+    };
   }
 }
 
@@ -235,8 +365,61 @@ export class Assignment implements TreeNode<null> {
       throw new Error("Cannot assign to literal");
     }
 
-    symbolTable.set(firstChild.value, secondChild.evaluate(symbolTable));
-    return 0;
+    const secondChildSymbol = secondChild.evaluate(symbolTable);
+    symbolTable.declare(firstChild.value, secondChildSymbol.type);
+    symbolTable.setSymbol(firstChild.value, secondChildSymbol);
+
+    return {
+      type: SymbolType.INT,
+      value: 0,
+    };
+  }
+}
+
+export class VarDec implements TreeNode<SymbolType> {
+  value: SymbolType;
+  children: GenericTreeNode[];
+
+  constructor({
+    children,
+    value,
+  }: {
+    children: GenericTreeNode[];
+    value: SymbolType;
+  }) {
+    this.value = value;
+    this.children = children;
+  }
+
+  evaluate(symbolTable: SymbolTable) {
+    if (this.children.length === 1) {
+      const child = this.children[0];
+      if (typeof child.value !== "string") {
+        throw new Error("Cannot assign to literal");
+      }
+
+      symbolTable.declare(child.value, this.value);
+    } else {
+      const [firstChild, secondChild] = this.children;
+      if (typeof firstChild.value !== "string") {
+        throw new Error("Cannot assign to literal");
+      }
+
+      const secondChildSymbol = secondChild.evaluate(symbolTable);
+      if (secondChildSymbol.type !== this.value) {
+        throw new Error(
+          `Cannot assign ${secondChildSymbol.type} to ${this.value} variable`
+        );
+      }
+
+      symbolTable.declare(firstChild.value, secondChildSymbol.type);
+      symbolTable.setSymbol(firstChild.value, secondChildSymbol);
+    }
+
+    return {
+      type: SymbolType.INT,
+      value: 0,
+    };
   }
 }
 
@@ -256,7 +439,10 @@ export class While implements TreeNode<null> {
       secondChild.evaluate(symbolTable);
     }
 
-    return 0;
+    return {
+      type: SymbolType.INT,
+      value: 0,
+    };
   }
 }
 
@@ -278,7 +464,10 @@ export class If implements TreeNode<null> {
       elseBlock.evaluate(symbolTable);
     }
 
-    return 0;
+    return {
+      type: SymbolType.INT,
+      value: 0,
+    };
   }
 }
 
@@ -293,7 +482,10 @@ export class Scan implements TreeNode<null> {
     this.children = [];
   }
 
-  evaluate(symbolTable: SymbolTable) {
-    return Number(Scan.input.get());
+  evaluate(_: SymbolTable) {
+    return {
+      type: SymbolType.INT,
+      value: Scan.input.get(),
+    };
   }
 }

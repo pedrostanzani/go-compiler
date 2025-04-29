@@ -69,6 +69,20 @@ class Parser {
             this.tokenizer.selectNext();
             return node;
         }
+        if (this.tokenizer.getNext().getType() === enums_1.TokenType.STRING) {
+            const node = new Node_1.StringVal({
+                value: this.tokenizer.getNext().getStringValue(),
+            });
+            this.tokenizer.selectNext();
+            return node;
+        }
+        if (this.tokenizer.getNext().getType() === enums_1.TokenType.BOOL) {
+            const node = new Node_1.BoolVal({
+                value: this.tokenizer.getNext().getBooleanValue(),
+            });
+            this.tokenizer.selectNext();
+            return node;
+        }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.PLUS) {
             this.tokenizer.selectNext();
             const node = new Node_1.UnOp({
@@ -258,6 +272,38 @@ class Parser {
         });
         if ((0, utils_1.isTruthy)(node))
             return node;
+        if (this.tokenizer.getNext().getType() === enums_1.TokenType.VAR) {
+            const [identifier, typeToken] = this.readSequential({
+                items: [enums_1.TokenType.VAR, enums_1.TokenType.IDENTIFIER, enums_1.TokenType.TYPE],
+                onFinish: (itemsStore) => {
+                    const [_, identifierToken, typeToken] = itemsStore;
+                    return [new Node_1.Identifier({ token: identifierToken }), typeToken];
+                },
+                errorDetails: { fn: "parseStatement", details: "VAR" },
+            });
+            const node = this.readSequential({
+                items: [enums_1.TokenType.ASSIGNMENT, this.parseBooleanExpression],
+                onFinish: (itemsStore) => {
+                    const expression = itemsStore[1];
+                    return new Node_1.VarDec({
+                        value: typeToken.getStringValue(),
+                        children: [identifier, expression],
+                    });
+                },
+                throwErrorOnFirstItem: false,
+                errorDetails: { fn: "parseStatement", details: "VAR/ASSIGNMENT" },
+            });
+            if ((0, utils_1.isTruthy)(node))
+                return node;
+            return this.readSequential({
+                items: [enums_1.TokenType.NEW_LINE],
+                onFinish: () => new Node_1.VarDec({
+                    value: typeToken.getStringValue(),
+                    children: [identifier],
+                }),
+                errorDetails: { fn: "parseStatement", details: "IF/NEW_LINE" },
+            });
+        }
         node = this.readSequential({
             items: [
                 enums_1.TokenType.WHILE,

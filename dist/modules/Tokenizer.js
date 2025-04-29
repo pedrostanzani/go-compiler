@@ -4,6 +4,7 @@ exports.Tokenizer = void 0;
 const Token_1 = require("./Token");
 const utils_1 = require("../lib/utils");
 const enums_1 = require("../lib/enums");
+const SymbolTable_1 = require("./SymbolTable");
 class Tokenizer {
     source;
     position;
@@ -96,6 +97,15 @@ class Tokenizer {
             case enums_1.TokenRepresentation.LESS_THAN:
                 this.position++;
                 return new Token_1.Token({ type: enums_1.TokenType.LESS_THAN });
+            case enums_1.TokenRepresentation.QUOTE:
+                let stringValue = "";
+                this.position++;
+                while (this.source[this.position] !== enums_1.TokenRepresentation.QUOTE) {
+                    stringValue += this.source[this.position];
+                    this.position++;
+                }
+                this.position++;
+                return new Token_1.Token({ type: enums_1.TokenType.STRING, value: stringValue });
             // Compound tokens
             case enums_1.TokenRepresentation.ASSIGNMENT:
                 this.position++;
@@ -147,6 +157,27 @@ class Tokenizer {
                     return new Token_1.Token({ type: enums_1.TokenType.ELSE });
                 case enums_1.TokenRepresentation.WHILE:
                     return new Token_1.Token({ type: enums_1.TokenType.WHILE });
+                case enums_1.TokenRepresentation.TRUE:
+                    return new Token_1.Token({ type: enums_1.TokenType.BOOL, value: true });
+                case enums_1.TokenRepresentation.FALSE:
+                    return new Token_1.Token({ type: enums_1.TokenType.BOOL, value: false });
+                case enums_1.TokenRepresentation.VAR:
+                    return new Token_1.Token({ type: enums_1.TokenType.VAR });
+                case enums_1.TokenRepresentation.INT:
+                    return new Token_1.Token({
+                        type: enums_1.TokenType.TYPE,
+                        value: SymbolTable_1.SymbolType.INT,
+                    });
+                case enums_1.TokenRepresentation.STR:
+                    return new Token_1.Token({
+                        type: enums_1.TokenType.TYPE,
+                        value: SymbolTable_1.SymbolType.STRING,
+                    });
+                case enums_1.TokenRepresentation.BOOL:
+                    return new Token_1.Token({
+                        type: enums_1.TokenType.TYPE,
+                        value: SymbolTable_1.SymbolType.BOOL,
+                    });
                 default:
                     return new Token_1.Token({
                         type: enums_1.TokenType.IDENTIFIER,

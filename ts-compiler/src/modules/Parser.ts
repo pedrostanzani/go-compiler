@@ -7,6 +7,7 @@ import {
   Assignment,
   BinOp,
   Block,
+  BoolVal,
   GenericTreeNode,
   Identifier,
   If,
@@ -14,11 +15,14 @@ import {
   NoOp,
   Print,
   Scan,
+  StringVal,
   TreeNode,
   UnOp,
+  VarDec,
   While,
 } from "./Node";
 import { isTruthy } from "../lib/utils";
+import { SymbolType } from "./SymbolTable";
 
 type ReadOnlyItems = readonly (TokenType | (() => GenericTreeNode))[];
 
@@ -120,6 +124,22 @@ export class Parser {
 
     if (this.tokenizer.getNext().getType() === TokenType.IDENTIFIER) {
       const node = new Identifier({ token: this.tokenizer.getNext() });
+      this.tokenizer.selectNext();
+      return node;
+    }
+
+    if (this.tokenizer.getNext().getType() === TokenType.STRING) {
+      const node = new StringVal({
+        value: this.tokenizer.getNext().getStringValue(),
+      });
+      this.tokenizer.selectNext();
+      return node;
+    }
+
+    if (this.tokenizer.getNext().getType() === TokenType.BOOL) {
+      const node = new BoolVal({
+        value: this.tokenizer.getNext().getBooleanValue(),
+      });
       this.tokenizer.selectNext();
       return node;
     }
@@ -335,6 +355,41 @@ export class Parser {
       errorDetails: { fn: "parseStatement", details: "PRINTLN" },
     });
     if (isTruthy(node)) return node;
+
+    if (this.tokenizer.getNext().getType() === TokenType.VAR) {
+      const [identifier, typeToken] = this.readSequential({
+        items: [TokenType.VAR, TokenType.IDENTIFIER, TokenType.TYPE] as const,
+        onFinish: (itemsStore) => {
+          const [_, identifierToken, typeToken] = itemsStore;
+          return [new Identifier({ token: identifierToken }), typeToken];
+        },
+        errorDetails: { fn: "parseStatement", details: "VAR" },
+      });
+
+      const node = this.readSequential({
+        items: [TokenType.ASSIGNMENT, this.parseBooleanExpression] as const,
+        onFinish: (itemsStore) => {
+          const expression = itemsStore[1];
+          return new VarDec({
+            value: typeToken.getStringValue() as SymbolType,
+            children: [identifier, expression],
+          });
+        },
+        throwErrorOnFirstItem: false,
+        errorDetails: { fn: "parseStatement", details: "VAR/ASSIGNMENT" },
+      });
+      if (isTruthy(node)) return node;
+
+      return this.readSequential({
+        items: [TokenType.NEW_LINE],
+        onFinish: () =>
+          new VarDec({
+            value: typeToken.getStringValue() as SymbolType,
+            children: [identifier],
+          }),
+        errorDetails: { fn: "parseStatement", details: "IF/NEW_LINE" },
+      });
+    }
 
     node = this.readSequential({
       items: [

@@ -23,6 +23,12 @@ class Token {
         }
         return "";
     }
+    getBooleanValue() {
+        if (typeof this.value === "boolean") {
+            return this.value;
+        }
+        return false;
+    }
     getValue() {
         return this.value;
     }
