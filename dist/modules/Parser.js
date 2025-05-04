@@ -6,6 +6,7 @@ const enums_1 = require("../lib/enums");
 const PrePro_1 = require("./PrePro");
 const debug_1 = require("../lib/debug");
 const Node_1 = require("./Node");
+const utils_1 = require("../lib/utils");
 class Parser {
     static tokenizer;
     static throwUnexpectedToken({ fn, details, errorMessage = "Unexpected token.", }) {
@@ -24,6 +25,36 @@ class Parser {
             throw new Error(errorMessage);
         }
     }
+    static readSequential({ throwErrorOnFirstItem = true, ...sequence }) {
+        const itemsStore = [];
+        for (let i = 0; i < sequence.items.length; i++) {
+            const item = sequence.items[i];
+            if (typeof item === "string") {
+                if (this.tokenizer.getNext().getType() === item) {
+                    itemsStore.push(this.tokenizer.getNext());
+                    this.tokenizer.selectNext();
+                    continue;
+                }
+                else if (i === 0 && !throwErrorOnFirstItem) {
+                    return null;
+                }
+                else {
+                    this.throwUnexpectedToken(sequence.errorDetails ?? {
+                        fn: "readSequential",
+                        details: "GENERIC",
+                    });
+                }
+            }
+            else if (typeof item === "function") {
+                const node = item.call(this);
+                itemsStore.push(node);
+            }
+            else {
+                throw new Error("Invalid sequence.");
+            }
+        }
+        return sequence.onFinish(itemsStore);
+    }
     static parseFactor() {
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.INT) {
             const node = new Node_1.IntVal({
@@ -35,6 +66,20 @@ class Parser {
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.IDENTIFIER) {
             const node = new Node_1.Identifier({ token: this.tokenizer.getNext() });
+            this.tokenizer.selectNext();
+            return node;
+        }
+        if (this.tokenizer.getNext().getType() === enums_1.TokenType.STRING) {
+            const node = new Node_1.StringVal({
+                value: this.tokenizer.getNext().getStringValue(),
+            });
+            this.tokenizer.selectNext();
+            return node;
+        }
+        if (this.tokenizer.getNext().getType() === enums_1.TokenType.BOOL) {
+            const node = new Node_1.BoolVal({
+                value: this.tokenizer.getNext().getBooleanValue(),
+            });
             this.tokenizer.selectNext();
             return node;
         }
@@ -62,34 +107,35 @@ class Parser {
             });
             return node;
         }
-        if (this.tokenizer.getNext().getType() === enums_1.TokenType.OPEN_PAR) {
-            this.tokenizer.selectNext();
-            const node = this.parseBooleanExpression();
-            if (this.tokenizer.getNext().getType() === enums_1.TokenType.CLOSE_PAR) {
-                this.tokenizer.selectNext();
-                return node;
-            }
-            else {
-                this.throwUnexpectedToken({
-                    fn: "parseFactor",
-                    details: "OPEN_PAR",
-                });
-            }
-        }
-        if (this.tokenizer.getNext().getType() === enums_1.TokenType.READ) {
-            this.tokenizer.selectNext();
-            if (this.tokenizer.getNext().getType() === enums_1.TokenType.OPEN_PAR) {
-                this.tokenizer.selectNext();
-                if (this.tokenizer.getNext().getType() === enums_1.TokenType.CLOSE_PAR) {
-                    this.tokenizer.selectNext();
-                    return new Node_1.Scan();
-                }
-            }
-            this.throwUnexpectedToken({
+        let node;
+        node = this.readSequential({
+            items: [
+                enums_1.TokenType.OPEN_PAR,
+                this.parseBooleanExpression,
+                enums_1.TokenType.CLOSE_PAR,
+            ],
+            onFinish: (itemsStore) => {
+                return itemsStore[1];
+            },
+            throwErrorOnFirstItem: false,
+            errorDetails: {
+                fn: "parseFactor",
+                details: "OPEN_PAR",
+            },
+        });
+        if ((0, utils_1.isTruthy)(node))
+            return node;
+        node = this.readSequential({
+            items: [enums_1.TokenType.READ, enums_1.TokenType.OPEN_PAR, enums_1.TokenType.CLOSE_PAR],
+            onFinish: () => new Node_1.Scan(),
+            throwErrorOnFirstItem: false,
+            errorDetails: {
                 fn: "parseFactor",
                 details: "READ",
-            });
-        }
+            },
+        });
+        if ((0, utils_1.isTruthy)(node))
+            return node;
         this.throwUnexpectedToken({
             fn: "parseFactor",
             details: "ESCAPE",
@@ -189,85 +235,120 @@ class Parser {
         return node;
     }
     static parseStatement() {
-        if (this.tokenizer.getNext().getType() === enums_1.TokenType.IDENTIFIER) {
-            const identifier = new Node_1.Identifier({ token: this.tokenizer.getNext() });
-            this.tokenizer.selectNext();
-            if (this.tokenizer.getNext().getType() === enums_1.TokenType.ASSIGNMENT) {
-                this.tokenizer.selectNext();
-                const expression = this.parseBooleanExpression();
-                const assignment = new Node_1.Assignment({
+        let node;
+        node = this.readSequential({
+            items: [
+                enums_1.TokenType.IDENTIFIER,
+                enums_1.TokenType.ASSIGNMENT,
+                this.parseBooleanExpression,
+                enums_1.TokenType.NEW_LINE,
+            ],
+            onFinish: (itemsStore) => {
+                const [identifierToken, _, expression] = itemsStore;
+                const identifier = new Node_1.Identifier({ token: identifierToken });
+                return new Node_1.Assignment({
                     children: [identifier, expression],
                 });
-                if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
-                    this.tokenizer.selectNext();
-                    return assignment;
-                }
-            }
-            this.throwUnexpectedToken({
-                fn: "parseStatement",
-                details: "IDENTIFIER",
+            },
+            throwErrorOnFirstItem: false,
+            errorDetails: { fn: "parseStatement", details: "IDENTIFIER" },
+        });
+        if ((0, utils_1.isTruthy)(node))
+            return node;
+        node = this.readSequential({
+            items: [
+                enums_1.TokenType.PRINTLN,
+                enums_1.TokenType.OPEN_PAR,
+                this.parseBooleanExpression,
+                enums_1.TokenType.CLOSE_PAR,
+                enums_1.TokenType.NEW_LINE,
+            ],
+            onFinish: (itemsStore) => {
+                const booleanExpression = itemsStore[2];
+                return new Node_1.Print({ children: [booleanExpression] });
+            },
+            throwErrorOnFirstItem: false,
+            errorDetails: { fn: "parseStatement", details: "PRINTLN" },
+        });
+        if ((0, utils_1.isTruthy)(node))
+            return node;
+        if (this.tokenizer.getNext().getType() === enums_1.TokenType.VAR) {
+            const [identifier, typeToken] = this.readSequential({
+                items: [enums_1.TokenType.VAR, enums_1.TokenType.IDENTIFIER, enums_1.TokenType.TYPE],
+                onFinish: (itemsStore) => {
+                    const [_, identifierToken, typeToken] = itemsStore;
+                    return [new Node_1.Identifier({ token: identifierToken }), typeToken];
+                },
+                errorDetails: { fn: "parseStatement", details: "VAR" },
             });
-        }
-        if (this.tokenizer.getNext().getType() === enums_1.TokenType.PRINTLN) {
-            this.tokenizer.selectNext();
-            if (this.tokenizer.getNext().getType() === enums_1.TokenType.OPEN_PAR) {
-                this.tokenizer.selectNext();
-                const print = new Node_1.Print({ children: [this.parseBooleanExpression()] });
-                if (this.tokenizer.getNext().getType() === enums_1.TokenType.CLOSE_PAR) {
-                    this.tokenizer.selectNext();
-                    if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
-                        this.tokenizer.selectNext();
-                        return print;
-                    }
-                }
-            }
-            this.throwUnexpectedToken({
-                fn: "parseStatement",
-                details: "PRINTLN",
-            });
-        }
-        if (this.tokenizer.getNext().getType() === enums_1.TokenType.WHILE) {
-            this.tokenizer.selectNext();
-            const booleanExpression = this.parseBooleanExpression();
-            // this.tokenizer.selectNext();
-            const whileNode = new Node_1.While({
-                children: [booleanExpression, this.parseBlock()],
-            });
-            if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
-                this.tokenizer.selectNext();
-                return whileNode;
-            }
-            this.throwUnexpectedToken({
-                fn: "parseStatement",
-                details: "WHILE",
-            });
-        }
-        if (this.tokenizer.getNext().getType() === enums_1.TokenType.IF) {
-            this.tokenizer.selectNext();
-            const booleanExpression = this.parseBooleanExpression();
-            // this.tokenizer.selectNext();
-            const ifBlock = this.parseBlock();
-            if (this.tokenizer.getNext().getType() === enums_1.TokenType.ELSE) {
-                this.tokenizer.selectNext();
-                const elseBlock = this.parseBlock();
-                // this.tokenizer.selectNext();
-                if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
-                    return new Node_1.If({ children: [booleanExpression, ifBlock, elseBlock] });
-                }
-                else {
-                    this.throwUnexpectedToken({
-                        fn: "parseStatement",
-                        details: "ELSE/NEW_LINE",
+            const node = this.readSequential({
+                items: [enums_1.TokenType.ASSIGNMENT, this.parseBooleanExpression],
+                onFinish: (itemsStore) => {
+                    const expression = itemsStore[1];
+                    return new Node_1.VarDec({
+                        value: typeToken.getStringValue(),
+                        children: [identifier, expression],
                     });
-                }
-            }
-            else if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {
-                this.tokenizer.selectNext();
-                return new Node_1.If({ children: [booleanExpression, ifBlock] });
-            }
-            this.throwUnexpectedToken({
-                fn: "parseStatement",
-                details: "IF",
+                },
+                throwErrorOnFirstItem: false,
+                errorDetails: { fn: "parseStatement", details: "VAR/ASSIGNMENT" },
+            });
+            if ((0, utils_1.isTruthy)(node))
+                return node;
+            return this.readSequential({
+                items: [enums_1.TokenType.NEW_LINE],
+                onFinish: () => new Node_1.VarDec({
+                    value: typeToken.getStringValue(),
+                    children: [identifier],
+                }),
+                errorDetails: { fn: "parseStatement", details: "IF/NEW_LINE" },
+            });
+        }
+        node = this.readSequential({
+            items: [
+                enums_1.TokenType.WHILE,
+                this.parseBooleanExpression,
+                this.parseBlock,
+                enums_1.TokenType.NEW_LINE,
+            ],
+            onFinish: (itemsStore) => {
+                const booleanExpression = itemsStore[1];
+                const block = itemsStore[2];
+                return new Node_1.While({ children: [booleanExpression, block] });
+            },
+            throwErrorOnFirstItem: false,
+            errorDetails: { fn: "parseStatement", details: "WHILE" },
+        });
+        if ((0, utils_1.isTruthy)(node))
+            return node;
+        if (this.tokenizer.getNext().getType() === enums_1.TokenType.IF) {
+            const [booleanExpression, ifBlock] = this.readSequential({
+                items: [
+                    enums_1.TokenType.IF,
+                    this.parseBooleanExpression,
+                    this.parseBlock,
+                ],
+                onFinish: (itemsStore) => {
+                    const [_, booleanExpression, ifBlock] = itemsStore;
+                    return [booleanExpression, ifBlock];
+                },
+                errorDetails: { fn: "parseStatement", details: "IF" },
+            });
+            const node = this.readSequential({
+                items: [enums_1.TokenType.ELSE, this.parseBlock, enums_1.TokenType.NEW_LINE],
+                onFinish: (itemsStore) => {
+                    const elseBlock = itemsStore[1];
+                    return new Node_1.If({ children: [booleanExpression, ifBlock, elseBlock] });
+                },
+                throwErrorOnFirstItem: false,
+                errorDetails: { fn: "parseStatement", details: "IF/ELSE" },
+            });
+            if ((0, utils_1.isTruthy)(node))
+                return node;
+            return this.readSequential({
+                items: [enums_1.TokenType.NEW_LINE],
+                onFinish: () => new Node_1.If({ children: [booleanExpression, ifBlock] }),
+                errorDetails: { fn: "parseStatement", details: "IF/NEW_LINE" },
             });
         }
         if (this.tokenizer.getNext().getType() === enums_1.TokenType.NEW_LINE) {

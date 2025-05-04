@@ -1,7 +1,13 @@
 
 export enum TokenType {
-  // Numerical
+  // Primitives
   INT = "INT",
+  STRING = "STRING",
+  BOOL = "BOOL",
+
+  // Type declarations
+  VAR = "VAR",
+  TYPE = "TYPE",
 
   // Operations
   PLUS = "PLUS",
@@ -54,6 +60,10 @@ export enum TokenRepresentation {
   X = "*",
   DIVIDE = "/",
 
+  // Boolean primitives
+  TRUE = "true",
+  FALSE = "false",
+
   // Boolean operators
   NOT = "!",
   AND = "&&",
@@ -67,6 +77,9 @@ export enum TokenRepresentation {
   // Brackets
   OPEN_PAR = "(",
   CLOSE_PAR = ")",
+
+  // Quotes
+  QUOTE = "\"",
 
   // Blocks
   OPEN_BRAC = "{",
@@ -83,6 +96,12 @@ export enum TokenRepresentation {
   // Built-ins
   PRINT = "Println",
   READ = "Scan",
+  VAR = "var",
+
+  // Types
+  INT = "int",
+  STR = "string",
+  BOOL = "bool",
 
   // New line
   NEW_LINE = "\n",

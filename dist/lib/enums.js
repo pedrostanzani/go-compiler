@@ -3,8 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TokenRepresentation = exports.TokenType = void 0;
 var TokenType;
 (function (TokenType) {
-    // Numerical
+    // Primitives
     TokenType["INT"] = "INT";
+    TokenType["STRING"] = "STRING";
+    TokenType["BOOL"] = "BOOL";
+    // Type declarations
+    TokenType["VAR"] = "VAR";
+    TokenType["TYPE"] = "TYPE";
     // Operations
     TokenType["PLUS"] = "PLUS";
     TokenType["MINUS"] = "MINUS";
@@ -46,6 +51,9 @@ var TokenRepresentation;
     TokenRepresentation["MINUS"] = "-";
     TokenRepresentation["X"] = "*";
     TokenRepresentation["DIVIDE"] = "/";
+    // Boolean primitives
+    TokenRepresentation["TRUE"] = "true";
+    TokenRepresentation["FALSE"] = "false";
     // Boolean operators
     TokenRepresentation["NOT"] = "!";
     TokenRepresentation["AND"] = "&&";
@@ -57,6 +65,8 @@ var TokenRepresentation;
     // Brackets
     TokenRepresentation["OPEN_PAR"] = "(";
     TokenRepresentation["CLOSE_PAR"] = ")";
+    // Quotes
+    TokenRepresentation["QUOTE"] = "\"";
     // Blocks
     TokenRepresentation["OPEN_BRAC"] = "{";
     TokenRepresentation["CLOSE_BRAC"] = "}";
@@ -69,6 +79,11 @@ var TokenRepresentation;
     // Built-ins
     TokenRepresentation["PRINT"] = "Println";
     TokenRepresentation["READ"] = "Scan";
+    TokenRepresentation["VAR"] = "var";
+    // Types
+    TokenRepresentation["INT"] = "int";
+    TokenRepresentation["STR"] = "string";
+    TokenRepresentation["BOOL"] = "bool";
     // New line
     TokenRepresentation["NEW_LINE"] = "\n";
 })(TokenRepresentation || (exports.TokenRepresentation = TokenRepresentation = {}));

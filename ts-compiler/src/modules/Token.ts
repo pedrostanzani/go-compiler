@@ -2,14 +2,14 @@ import { TokenType } from "../lib/enums";
 
 export class Token {
   type: TokenType;
-  value: number | string | null;
+  value: number | string | boolean | null;
 
   constructor({
     type,
     value = null,
   }: {
     type: TokenType;
-    value?: number | string | null;
+    value?: number | string | boolean | null;
   }) {
     this.type = type;
     this.value = value;
@@ -33,6 +33,14 @@ export class Token {
     }
 
     return "";
+  }
+
+  getBooleanValue(): boolean {
+    if (typeof this.value === "boolean") {
+      return this.value;
+    }
+
+    return false;
   }
 
   getValue() {

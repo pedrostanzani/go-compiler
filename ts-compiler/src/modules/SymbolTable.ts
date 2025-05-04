@@ -1,21 +1,53 @@
+import { isTruthy } from "../lib/utils";
+
+export enum SymbolType {
+  STRING = "STRING",
+  INT = "INT",
+  BOOL = "BOOL",
+}
+
+type SymbolValue = string | number | boolean;
+
+interface BaseSymbol { type: SymbolType; value: SymbolValue | null }
+export interface InitializedSymbol extends BaseSymbol { value: SymbolValue };
+export type Symbol = BaseSymbol | InitializedSymbol;
+
 export class SymbolTable {
-  private table: Map<string, number>;
+  private table: Map<string, Symbol>;
 
   constructor() {
     this.table = new Map();
   }
 
-  set(key: string, value: number) {
-    this.table.set(key, value);
-  }
-
-  get(key: string) {
-    const value = this.table.get(key);
-    if (typeof value === "number") {
-      return value;
-    }
-
+  get(key: string): Symbol {
+    const symbol = this.table.get(key);
+    if (isTruthy(symbol)) return symbol;
     throw new Error(`Name error: identifier '${key}' is not defined`);
   }
-}
 
+  setSymbol(key: string, symbol: Symbol): void {
+    const currentSymbol = this.table.get(key);
+    if (!isTruthy(currentSymbol)) {
+      throw new Error(`Variable ${key} does not exist in context`);
+    }
+
+    if (symbol.type !== currentSymbol.type) {
+      throw new Error(
+        `Cannot set ${symbol.type} to variable declared as ${currentSymbol.type}`
+      );
+    }
+
+    this.table.set(key, symbol);
+  }
+
+  declare(key: string, type: SymbolType) {
+    if (this.table.has(key)) {
+      throw new Error(`Variable ${key} has already been declared`);
+    }
+
+    this.table.set(key, {
+      type: type,
+      value: null,
+    });
+  }
+}

@@ -6,6 +6,7 @@ import {
   isWhitespace,
 } from "../lib/utils";
 import { TokenRepresentation, TokenType } from "../lib/enums";
+import { SymbolType } from "./SymbolTable";
 
 export class Tokenizer {
   source: string;
@@ -118,6 +119,21 @@ export class Tokenizer {
         this.position++;
         return new Token({ type: TokenType.LESS_THAN });
 
+      case TokenRepresentation.QUOTE:
+        let stringValue = "";
+        this.position++;
+        while (this.source[this.position] !== TokenRepresentation.QUOTE) {
+          stringValue += this.source[this.position];
+          this.position++;
+
+          if (this.position >= this.source.length) {
+            throw new Error("Unexpected EOF while reading string.");
+          }
+        }
+
+        this.position++;
+        return new Token({ type: TokenType.STRING, value: stringValue });
+
       // Compound tokens
       case TokenRepresentation.ASSIGNMENT:
         this.position++;
@@ -175,6 +191,33 @@ export class Tokenizer {
 
         case TokenRepresentation.WHILE:
           return new Token({ type: TokenType.WHILE });
+
+        case TokenRepresentation.TRUE:
+          return new Token({ type: TokenType.BOOL, value: true });
+
+        case TokenRepresentation.FALSE:
+          return new Token({ type: TokenType.BOOL, value: false });
+
+        case TokenRepresentation.VAR:
+          return new Token({ type: TokenType.VAR });
+
+        case TokenRepresentation.INT:
+          return new Token({
+            type: TokenType.TYPE,
+            value: SymbolType.INT,
+          });
+
+        case TokenRepresentation.STR:
+          return new Token({
+            type: TokenType.TYPE,
+            value: SymbolType.STRING,
+          });
+
+        case TokenRepresentation.BOOL:
+          return new Token({
+            type: TokenType.TYPE,
+            value: SymbolType.BOOL,
+          });
 
         default:
           return new Token({
