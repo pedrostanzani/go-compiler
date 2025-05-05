@@ -520,7 +520,14 @@ export class Identifier implements TreeNode<string> {
     };
   }
 
-  generate() {}
+  generate(symbolTable: SymbolTable) {
+    const sym = symbolTable.get(this.value);
+    if (sym.offset == null) {
+      throw new Error(`No offset recorded for variable '${this.value}'`);
+    }
+    
+    codeInstance.append(`mov eax, [ebp-${sym.offset}] ;`);
+  }
 }
 
 export class Block implements TreeNode<null> {
