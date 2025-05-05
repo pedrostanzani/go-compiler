@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = require("fs");
 const Parser_1 = require("./modules/Parser");
 const SymbolTable_1 = require("./modules/SymbolTable");
+const Code_1 = require("./modules/Code");
 const main = () => {
     const argument = process.argv[2];
     if (argument === undefined) {
@@ -23,6 +24,7 @@ const main = () => {
     }
     const ast = Parser_1.Parser.run(sourceCode);
     const symbolTable = new SymbolTable_1.SymbolTable();
-    ast.evaluate(symbolTable);
+    ast.generate(symbolTable);
+    Code_1.code.dump(`${argument.replace(".go", "")}.asm`);
 };
 main();

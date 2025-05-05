@@ -1,5 +1,7 @@
 import { isTruthy } from "../lib/utils";
 
+export const BYTE_SHIFT_INCREMENT = 4;
+
 export enum SymbolType {
   STRING = "STRING",
   INT = "INT",
@@ -8,12 +10,13 @@ export enum SymbolType {
 
 type SymbolValue = string | number | boolean;
 
-interface BaseSymbol { type: SymbolType; value: SymbolValue | null }
+interface BaseSymbol { type: SymbolType; value: SymbolValue | null, offset?: number }
 export interface InitializedSymbol extends BaseSymbol { value: SymbolValue };
 export type Symbol = BaseSymbol | InitializedSymbol;
 
 export class SymbolTable {
   private table: Map<string, Symbol>;
+  private currentOffset: number = 0;
 
   constructor() {
     this.table = new Map();
@@ -45,9 +48,12 @@ export class SymbolTable {
       throw new Error(`Variable ${key} has already been declared`);
     }
 
+    this.currentOffset += BYTE_SHIFT_INCREMENT;
+
     this.table.set(key, {
       type: type,
       value: null,
+      offset: this.currentOffset,
     });
   }
 }

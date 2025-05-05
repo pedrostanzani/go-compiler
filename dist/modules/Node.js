@@ -5,10 +5,15 @@ const enums_1 = require("../lib/enums");
 const input_1 = require("../lib/input");
 const utils_1 = require("../lib/utils");
 const SymbolTable_1 = require("./SymbolTable");
+const NodeIdService_1 = require("./NodeIdService");
+const Code_1 = require("./Code");
 class BinOp {
+    id;
     value;
     children;
     constructor({ value, children, }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = value;
         this.children = children;
     }
@@ -165,12 +170,74 @@ class BinOp {
             value: 0,
         };
     }
+    generate(symbolTable) {
+        const [firstChild, secondChild] = this.children;
+        if (this.value === enums_1.TokenType.PLUS ||
+            this.value === enums_1.TokenType.MINUS ||
+            this.value === enums_1.TokenType.DIVIDE ||
+            this.value === enums_1.TokenType.X) {
+            secondChild.generate(symbolTable);
+            Code_1.code.append(`push eax ;`);
+            firstChild.generate(symbolTable);
+            Code_1.code.append(`pop ecx ;`);
+            switch (this.value) {
+                case enums_1.TokenType.PLUS:
+                    Code_1.code.append(`add eax, ecx ;`);
+                    return;
+                case enums_1.TokenType.MINUS:
+                    Code_1.code.append(`sub eax, ecx ;`);
+                    return;
+                case enums_1.TokenType.DIVIDE:
+                    Code_1.code.append(`cdq           ;`);
+                    Code_1.code.append(`idiv  ecx     ;`);
+                    return;
+                case enums_1.TokenType.X:
+                    Code_1.code.append(`imul  ecx     ;`);
+                    return;
+            }
+        }
+        else {
+            secondChild.generate(symbolTable);
+            Code_1.code.append(`push eax ;`);
+            firstChild.generate(symbolTable);
+            Code_1.code.append(`pop ecx ;`);
+            switch (this.value) {
+                case enums_1.TokenType.EQUALS:
+                    Code_1.code.append(`cmp eax, ecx ;`);
+                    Code_1.code.append(`mov ecx, 1   ;`);
+                    Code_1.code.append(`mov eax, 0   ;`);
+                    Code_1.code.append(`cmove eax, ecx ;`);
+                    return;
+                case enums_1.TokenType.GREATER_THAN:
+                    Code_1.code.append(`cmp eax, ecx ;`);
+                    Code_1.code.append(`mov ecx, 1   ;`);
+                    Code_1.code.append(`mov eax, 0   ;`);
+                    Code_1.code.append(`cmovg eax, ecx ;`);
+                    return;
+                case enums_1.TokenType.LESS_THAN:
+                    Code_1.code.append(`cmp eax, ecx ;`);
+                    Code_1.code.append(`mov ecx, 1   ;`);
+                    Code_1.code.append(`mov eax, 0   ;`);
+                    Code_1.code.append(`cmovl eax, ecx ;`);
+                    return;
+                case enums_1.TokenType.OR:
+                    Code_1.code.append(`or eax, ecx ;`);
+                    return;
+                case enums_1.TokenType.AND:
+                    Code_1.code.append(`and eax, ecx ;`);
+                    return;
+            }
+        }
+    }
 }
 exports.BinOp = BinOp;
 class UnOp {
+    id;
     value;
     children;
     constructor({ value, children, }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = value;
         this.children = children;
     }
@@ -202,12 +269,31 @@ class UnOp {
                 };
         }
     }
+    generate(symbolTable) {
+        const child = this.children[0];
+        if (this.value === enums_1.TokenType.MINUS) {
+            child.generate(symbolTable);
+            Code_1.code.append(`neg eax;`);
+        }
+        else if (this.value === enums_1.TokenType.PLUS) {
+            child.generate(symbolTable);
+        }
+        else {
+            child.generate(symbolTable);
+            Code_1.code.append(`test eax, eax;`);
+            Code_1.code.append(`setz al;`);
+            Code_1.code.append(`movzx eax, al;`);
+        }
+    }
 }
 exports.UnOp = UnOp;
 class IntVal {
+    id;
     value;
     children;
     constructor({ value, children, }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = value;
         this.children = children;
     }
@@ -217,12 +303,18 @@ class IntVal {
             value: this.value,
         };
     }
+    generate() {
+        Code_1.code.append(`mov eax, ${this.value} ;`);
+    }
 }
 exports.IntVal = IntVal;
 class StringVal {
+    id;
     value;
     children;
     constructor({ value }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = value;
         this.children = [];
     }
@@ -232,12 +324,16 @@ class StringVal {
             value: this.value,
         };
     }
+    generate() { }
 }
 exports.StringVal = StringVal;
 class BoolVal {
+    id;
     value;
     children;
     constructor({ value }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = value;
         this.children = [];
     }
@@ -247,12 +343,18 @@ class BoolVal {
             value: this.value,
         };
     }
+    generate() {
+        Code_1.code.append(`mov eax, ${this.value ? "1" : "0"} ;`);
+    }
 }
 exports.BoolVal = BoolVal;
 class NoOp {
+    id;
     value;
     children;
     constructor() {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = null;
         this.children = [];
     }
@@ -262,15 +364,19 @@ class NoOp {
             value: this.value ?? 0,
         };
     }
+    generate() { }
 }
 exports.NoOp = NoOp;
 class Identifier {
+    id;
     value;
     children;
     constructor({ token }) {
         if (token.getType() !== enums_1.TokenType.IDENTIFIER) {
             throw new Error("Expected identifier token.");
         }
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = token.getStringValue();
         this.children = [];
     }
@@ -284,12 +390,16 @@ class Identifier {
             value: symbol.value,
         };
     }
+    generate() { }
 }
 exports.Identifier = Identifier;
 class Block {
+    id;
     value;
     children;
     constructor({ children }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = null;
         this.children = children;
     }
@@ -302,12 +412,20 @@ class Block {
             value: 0,
         };
     }
+    generate(symbolTable) {
+        this.children.forEach((child) => {
+            child.generate(symbolTable);
+        });
+    }
 }
 exports.Block = Block;
 class Print {
+    id;
     value;
     children;
     constructor({ children }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = null;
         this.children = children;
     }
@@ -320,12 +438,23 @@ class Print {
             value: 0,
         };
     }
+    generate(symbolTable) {
+        const expr = this.children[0];
+        expr.generate(symbolTable);
+        Code_1.code.append(`push eax ;`);
+        Code_1.code.append(`push format_out ;`);
+        Code_1.code.append(`call printf ;`);
+        Code_1.code.append(`add esp, 8 ;`);
+    }
 }
 exports.Print = Print;
 class Assignment {
+    id;
     value;
     children;
     constructor({ children }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = null;
         this.children = children;
     }
@@ -341,12 +470,28 @@ class Assignment {
             value: 0,
         };
     }
+    generate(symbolTable) {
+        const [firstChild, secondChild] = this.children;
+        if (typeof firstChild.value !== "string") {
+            throw new Error("Cannot assign to literal");
+        }
+        secondChild.generate(symbolTable);
+        const sym = symbolTable.get(firstChild.value);
+        if (sym.offset == null) {
+            throw new Error(`No offset recorded for variable '${firstChild.value}'`);
+        }
+        // 4) emit the store instruction
+        Code_1.code.append(`mov [ebp-${sym.offset}], eax ;`);
+    }
 }
 exports.Assignment = Assignment;
 class VarDec {
+    id;
     value;
     children;
     constructor({ children, value, }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = value;
         this.children = children;
     }
@@ -375,12 +520,32 @@ class VarDec {
             value: 0,
         };
     }
+    generate(symbolTable) {
+        const idNode = this.children[0];
+        if (typeof idNode.value !== "string") {
+            throw new Error("Cannot declare a non-identifier");
+        }
+        symbolTable.declare(idNode.value, this.value);
+        Code_1.code.append(`sub esp, ${SymbolTable_1.BYTE_SHIFT_INCREMENT} ;`);
+        if (this.children.length === 2) {
+            const initExpr = this.children[1];
+            initExpr.generate(symbolTable);
+            const sym = symbolTable.get(idNode.value);
+            if (sym.offset == null) {
+                throw new Error(`No offset for variable '${this.value}'`);
+            }
+            Code_1.code.append(`mov [ebp-${sym.offset}], eax ;`);
+        }
+    }
 }
 exports.VarDec = VarDec;
 class While {
+    id;
     value;
     children;
     constructor({ children }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = null;
         this.children = children;
     }
@@ -401,12 +566,27 @@ class While {
             value: 0,
         };
     }
+    generate(symbolTable) {
+        const [firstChild, secondChild] = this.children;
+        const loopLabel = `loop_${this.id}`;
+        const exitLabel = `exit_${this.id}`;
+        Code_1.code.append(`${loopLabel}:`);
+        firstChild.generate(symbolTable);
+        Code_1.code.append(`cmp eax, 0 ;`);
+        Code_1.code.append(`je  ${exitLabel} ;`);
+        secondChild.generate(symbolTable);
+        Code_1.code.append(`jmp ${loopLabel} ;`);
+        Code_1.code.append(`${exitLabel}:`);
+    }
 }
 exports.While = While;
 class If {
+    id;
     value;
     children;
     constructor({ children }) {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = null;
         this.children = children;
     }
@@ -427,13 +607,36 @@ class If {
             value: 0,
         };
     }
+    generate(symbolTable) {
+        const [condition, ifBlock, elseBlock] = this.children;
+        const elseLabel = `else_${this.id}`;
+        const exitLabel = `exit_${this.id}`;
+        condition.generate(symbolTable);
+        Code_1.code.append(`cmp eax, 0 ;`);
+        if ((0, utils_1.isTruthy)(elseBlock)) {
+            Code_1.code.append(`je  ${elseLabel} ;`);
+        }
+        else {
+            Code_1.code.append(`je  ${exitLabel} ;`);
+        }
+        ifBlock.generate(symbolTable);
+        Code_1.code.append(`jmp ${exitLabel} ;`);
+        if ((0, utils_1.isTruthy)(elseBlock)) {
+            Code_1.code.append(`${elseLabel}:`);
+            elseBlock.generate(symbolTable);
+        }
+        Code_1.code.append(`${exitLabel}:`);
+    }
 }
 exports.If = If;
 class Scan {
     static input = new input_1.Input("syncprompt");
+    id;
     value;
     children;
     constructor() {
+        this.id = NodeIdService_1.nodeIdService.getId();
+        NodeIdService_1.nodeIdService.increment();
         this.value = null;
         this.children = [];
     }
@@ -442,6 +645,13 @@ class Scan {
             type: SymbolTable_1.SymbolType.INT,
             value: Number(Scan.input.get()),
         };
+    }
+    generate() {
+        Code_1.code.append(`push scan_int ;`);
+        Code_1.code.append(`push format_in ;`);
+        Code_1.code.append(`call scanf ;`);
+        Code_1.code.append(`add esp, 8 ;`);
+        Code_1.code.append(`mov eax, dword [scan_int] ;`);
     }
 }
 exports.Scan = Scan;
