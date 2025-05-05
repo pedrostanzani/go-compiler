@@ -390,7 +390,13 @@ class Identifier {
             value: symbol.value,
         };
     }
-    generate() { }
+    generate(symbolTable) {
+        const sym = symbolTable.get(this.value);
+        if (sym.offset == null) {
+            throw new Error(`No offset recorded for variable '${this.value}'`);
+        }
+        Code_1.code.append(`mov eax, [ebp-${sym.offset}] ;`);
+    }
 }
 exports.Identifier = Identifier;
 class Block {
