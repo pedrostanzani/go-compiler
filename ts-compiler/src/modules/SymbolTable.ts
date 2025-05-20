@@ -8,12 +8,12 @@ export enum SymbolType {
   FUNC = "FUNC",
 }
 
-export type ValidFunctionReturnType = Exclude<SymbolType, SymbolType.FUNC>
+export type ValidFunctionReturnType = Exclude<SymbolType, SymbolType.FUNC>;
 
 type FunctionSymbol = {
   declaration: FuncDec;
   returnType: ValidFunctionReturnType | null;
-}
+};
 
 export type SymbolValue = string | number | boolean | FunctionSymbol;
 
@@ -44,18 +44,23 @@ export class SymbolTable {
   }
 
   setSymbol(key: string, symbol: Symbol): void {
-    const currentSymbol = this.table.get(key);
-    if (!isTruthy(currentSymbol)) {
-      throw new Error(`Variable ${key} does not exist in context`);
+    if (this.table.has(key)) {
+      const current = this.table.get(key)!;
+      if (symbol.type !== current.type) {
+        throw new Error(
+          `Cannot set ${symbol.type} to variable declared as ${current.type}`
+        );
+      }
+      this.table.set(key, symbol);
+      return;
     }
 
-    if (symbol.type !== currentSymbol.type) {
-      throw new Error(
-        `Cannot set ${symbol.type} to variable declared as ${currentSymbol.type}`
-      );
+    if (this.parent) {
+      this.parent.setSymbol(key, symbol);
+      return;
     }
 
-    this.table.set(key, symbol);
+    throw new Error(`Variable ${key} does not exist in context`);
   }
 
   declare(key: string, type: SymbolType) {

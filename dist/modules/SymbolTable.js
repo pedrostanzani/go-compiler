@@ -25,14 +25,19 @@ class SymbolTable {
         throw new Error(`Name error: identifier '${key}' is not defined`);
     }
     setSymbol(key, symbol) {
-        const currentSymbol = this.table.get(key);
-        if (!(0, utils_1.isTruthy)(currentSymbol)) {
-            throw new Error(`Variable ${key} does not exist in context`);
+        if (this.table.has(key)) {
+            const current = this.table.get(key);
+            if (symbol.type !== current.type) {
+                throw new Error(`Cannot set ${symbol.type} to variable declared as ${current.type}`);
+            }
+            this.table.set(key, symbol);
+            return;
         }
-        if (symbol.type !== currentSymbol.type) {
-            throw new Error(`Cannot set ${symbol.type} to variable declared as ${currentSymbol.type}`);
+        if (this.parent) {
+            this.parent.setSymbol(key, symbol);
+            return;
         }
-        this.table.set(key, symbol);
+        throw new Error(`Variable ${key} does not exist in context`);
     }
     declare(key, type) {
         if (this.table.has(key)) {
