@@ -708,7 +708,7 @@ export class FuncCall implements TreeNode<string> {
     }
 
     const evaluatedBlock = funcDec.evaluate(newSymbolTable);
-    if (evaluatedBlock.type !== funcSym.returnType) {
+    if (funcSym.returnType !== null && evaluatedBlock.type !== funcSym.returnType) {
       throw new Error("Unexpected function return type");
     }
 
