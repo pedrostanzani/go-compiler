@@ -8,12 +8,15 @@ import {
   BinOp,
   Block,
   BoolVal,
+  FuncCall,
+  FuncDec,
   GenericTreeNode,
   Identifier,
   If,
   IntVal,
   NoOp,
   Print,
+  Return,
   Scan,
   StringVal,
   TreeNode,
@@ -22,7 +25,7 @@ import {
   While,
 } from "./Node";
 import { isTruthy } from "../lib/utils";
-import { SymbolType } from "./SymbolTable";
+import { SymbolType, ValidFunctionReturnType } from "./SymbolTable";
 
 type ReadOnlyItems = readonly (TokenType | (() => GenericTreeNode))[];
 
@@ -123,9 +126,33 @@ export class Parser {
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.IDENTIFIER) {
-      const node = new Identifier({ token: this.tokenizer.getNext() });
+      const identifierToken = this.tokenizer.getNext();
+      const identifierNode = new Identifier({ token: identifierToken });
       this.tokenizer.selectNext();
-      return node;
+
+      if (this.tokenizer.getNext().getType() !== TokenType.OPEN_PAR) {
+        this.tokenizer.selectNext();
+        return identifierNode;
+      }
+
+      this.tokenizer.selectNext();
+      const args: GenericTreeNode[] = [];
+      if (this.tokenizer.getNext().getType() !== TokenType.CLOSE_PAR) {
+        args.push(this.parseBooleanExpression());
+        while (this.tokenizer.getNext().getType() === TokenType.COMMA) {
+          this.tokenizer.selectNext();
+          args.push(this.parseBooleanExpression());
+        }
+      }
+
+      if (this.tokenizer.getNext().getType() !== TokenType.CLOSE_PAR) {
+        this.throwUnexpectedToken({
+          fn: "parseStatement",
+          details: "IDENT/CLOSE_PAR",
+        });
+      }
+      this.tokenizer.selectNext();
+      return new FuncCall({ children: args, value: identifierNode.value });
     }
 
     if (this.tokenizer.getNext().getType() === TokenType.STRING) {
@@ -320,24 +347,64 @@ export class Parser {
   static parseStatement(): GenericTreeNode {
     let node: GenericTreeNode | null;
 
-    node = this.readSequential({
-      items: [
-        TokenType.IDENTIFIER,
-        TokenType.ASSIGNMENT,
-        this.parseBooleanExpression,
-        TokenType.NEW_LINE,
-      ] as const,
-      onFinish: (itemsStore) => {
-        const [identifierToken, _, expression] = itemsStore;
-        const identifier = new Identifier({ token: identifierToken });
-        return new Assignment({
-          children: [identifier, expression],
+    if (this.tokenizer.getNext().getType() === TokenType.IDENTIFIER) {
+      const identifier = new Identifier({ token: this.tokenizer.getNext() });
+      this.tokenizer.selectNext();
+
+      node = this.readSequential({
+        items: [
+          TokenType.ASSIGNMENT,
+          this.parseBooleanExpression,
+          TokenType.NEW_LINE,
+        ] as const,
+        onFinish: (itemsStore) => {
+          const [_, expression] = itemsStore;
+          return new Assignment({
+            children: [identifier, expression],
+          });
+        },
+        throwErrorOnFirstItem: false,
+        errorDetails: { fn: "parseStatement", details: "IDENTIFIER" },
+      });
+      if (isTruthy(node)) return node;
+
+      if (this.tokenizer.getNext().getType() === TokenType.OPEN_PAR) {
+        this.tokenizer.selectNext();
+
+        const args: GenericTreeNode[] = [];
+        if (this.tokenizer.getNext().getType() !== TokenType.CLOSE_PAR) {
+          args.push(this.parseBooleanExpression());
+
+          while (this.tokenizer.getNext().getType() === TokenType.COMMA) {
+            this.tokenizer.selectNext();
+            args.push(this.parseBooleanExpression());
+          }
+        }
+
+        if (this.tokenizer.getNext().getType() !== TokenType.CLOSE_PAR) {
+          this.throwUnexpectedToken({
+            fn: "parseStatement",
+            details: "IDENT/CLOSE_PAR",
+          });
+        }
+        this.tokenizer.selectNext();
+
+        if (this.tokenizer.getNext().getType() !== TokenType.NEW_LINE) {
+          this.throwUnexpectedToken({
+            fn: "parseStatement",
+            details: "IDENT/NEW_LINE",
+          });
+        }
+        this.tokenizer.selectNext();
+
+        return new FuncCall({ children: args, value: identifier.value });
+      } else {
+        this.throwUnexpectedToken({
+          fn: "parseStatement",
+          details: "IDENT/OPEN_PAR",
         });
-      },
-      throwErrorOnFirstItem: false,
-      errorDetails: { fn: "parseStatement", details: "IDENTIFIER" },
-    });
-    if (isTruthy(node)) return node;
+      }
+    }
 
     node = this.readSequential({
       items: [
@@ -440,6 +507,25 @@ export class Parser {
       });
     }
 
+    node = this.readSequential({
+      items: [TokenType.RETURN, this.parseBooleanExpression] as const,
+      onFinish: (itemsStore) => {
+        const [_, expression] = itemsStore;
+        return new Return({ children: [expression] });
+      },
+      throwErrorOnFirstItem: false,
+      errorDetails: { fn: "parseStatement", details: "RETURN" },
+    });
+    if (isTruthy(node)) return node;
+
+    if (this.tokenizer.getNext().getType() === TokenType.OPEN_BRAC) {
+      return this.parseBlock();
+    }
+
+    if (this.tokenizer.getNext().getType() === TokenType.VAR) {
+      return this.parseVarDeclaration();
+    }
+
     if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
       this.tokenizer.selectNext();
       return new NoOp();
@@ -475,22 +561,153 @@ export class Parser {
     }
   }
 
+  static parseVarDeclaration(): GenericTreeNode {
+    const [, identToken, typeToken] = this.readSequential({
+      items: [TokenType.VAR, TokenType.IDENTIFIER, TokenType.TYPE] as const,
+      throwErrorOnFirstItem: true,
+      onFinish: (itemsStore) => itemsStore,
+      errorDetails: {
+        fn: "parseVarDeclaration",
+        details: "VAR/IDENT/TYPE",
+      },
+    });
+
+    let initializer: GenericTreeNode | null = null;
+    if (this.tokenizer.getNext().getType() === TokenType.ASSIGNMENT) {
+      this.tokenizer.selectNext();
+      initializer = this.parseBooleanExpression();
+    }
+
+    if (isTruthy(initializer)) {
+      return new VarDec({
+        // store the declared type in `value`
+        value: typeToken.getStringValue() as SymbolType,
+        children: [new Identifier({ token: identToken }), initializer],
+      });
+    } else {
+      return new VarDec({
+        // store the declared type in `value`
+        value: typeToken.getStringValue() as SymbolType,
+        children: [new Identifier({ token: identToken })],
+      });
+    }
+  }
+
+  static parseFunctionDeclaration(): GenericTreeNode {
+    const identifierToken = this.readSequential({
+      items: [
+        TokenType.FUNC,
+        TokenType.IDENTIFIER,
+        TokenType.OPEN_PAR,
+      ] as const,
+      throwErrorOnFirstItem: true,
+      onFinish: (itemsStore) => {
+        return itemsStore[1];
+      },
+      errorDetails: {
+        fn: "parseFunctionDeclaration",
+        details: "FUNC/IDENT/OPEN_PAR",
+      },
+    });
+
+    const params: VarDec[] = [];
+    while (this.tokenizer.getNext().getType() !== TokenType.CLOSE_PAR) {
+      const [paramIdentifier, tokenType] = this.readSequential({
+        items: [TokenType.IDENTIFIER, TokenType.TYPE] as const,
+        throwErrorOnFirstItem: true,
+        onFinish: (itemsStore) => itemsStore,
+        errorDetails: {
+          fn: "parseFunctionDeclaration",
+          details: "IDENT/TYPE",
+        },
+      });
+
+      const param = new VarDec({
+        value: tokenType.getStringValue() as SymbolType,
+        children: [new Identifier({ token: paramIdentifier })],
+      });
+
+      params.push(param);
+
+      if (this.tokenizer.getNext().getType() === TokenType.COMMA) {
+        this.tokenizer.selectNext();
+        continue;
+      } else {
+        break;
+      }
+    }
+
+    if (this.tokenizer.getNext().getType() !== TokenType.CLOSE_PAR) {
+      this.throwUnexpectedToken({
+        fn: "parseFunctionDeclaration",
+        details: "NOT_CLOSE_PAR",
+      });
+    }
+    this.tokenizer.selectNext();
+
+    let returnType: ValidFunctionReturnType | null = null;
+    if (this.tokenizer.getNext().getType() === TokenType.TYPE) {
+      returnType = this.tokenizer
+        .getNext()
+        .getStringValue() as ValidFunctionReturnType;
+      this.tokenizer.selectNext();
+    }
+
+    return new FuncDec({
+      value: returnType,
+      children: [
+        new Identifier({ token: identifierToken }),
+        ...params,
+        this.parseBlock(),
+      ],
+    });
+  }
+
+  static parseProgram(): Block {
+    const children: GenericTreeNode[] = [];
+
+    while (this.tokenizer.getNext().getType() !== TokenType.EOF) {
+      if (this.tokenizer.getNext().getType() === TokenType.NEW_LINE) {
+        this.tokenizer.selectNext();
+        continue;
+      }
+
+      if (this.tokenizer.getNext().getType() === TokenType.FUNC) {
+        children.push(this.parseFunctionDeclaration());
+        continue;
+      }
+
+      if (this.tokenizer.getNext().getType() === TokenType.VAR) {
+        children.push(this.parseVarDeclaration());
+        continue;
+      }
+    }
+
+    return new Block({ children });
+  }
+
   static run(sourceCode: string): GenericTreeNode {
     this.tokenizer = new Tokenizer({
       source: PrePro.filter(sourceCode),
       position: 0,
     });
-    let result = this.parseBlock();
-    // Each parsing function should make sure that the next token is 'ready to go'
-    // So if run() calls
-    //  --> parseBlock()
-    // By the time the parseBlock function execution ends, the nextToken should be whatever
-    // comes after parseBlock in the diagram
 
+    const program = this.parseProgram();
     if (this.tokenizer.getNext().getType() !== TokenType.EOF) {
       throw new Error("Could not detect EOF.");
     }
 
-    return result;
+    const hasMain = program.children.some(
+      (node) =>
+        node instanceof FuncDec &&
+        (node.children[0] as Identifier).value === "main"
+    );
+    if (!hasMain) {
+      throw new Error(`Function "main" not defined`);
+    }
+
+    program.children.push(new FuncCall({ children: [], value: "main" }));
+
+    return program;
   }
 }

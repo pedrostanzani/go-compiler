@@ -1,27 +1,44 @@
 import { isTruthy } from "../lib/utils";
+import { FuncDec } from "./Node";
 
 export enum SymbolType {
   STRING = "STRING",
   INT = "INT",
   BOOL = "BOOL",
+  FUNC = "FUNC",
 }
 
-type SymbolValue = string | number | boolean;
+export type ValidFunctionReturnType = Exclude<SymbolType, SymbolType.FUNC>
 
-interface BaseSymbol { type: SymbolType; value: SymbolValue | null }
-export interface InitializedSymbol extends BaseSymbol { value: SymbolValue };
+type FunctionSymbol = {
+  declaration: FuncDec;
+  returnType: ValidFunctionReturnType | null;
+}
+
+type SymbolValue = string | number | boolean | FunctionSymbol;
+
+interface BaseSymbol {
+  type: SymbolType;
+  value: SymbolValue | null;
+}
+export interface InitializedSymbol extends BaseSymbol {
+  value: SymbolValue;
+}
 export type Symbol = BaseSymbol | InitializedSymbol;
 
 export class SymbolTable {
   private table: Map<string, Symbol>;
+  public parent: SymbolTable | null;
 
-  constructor() {
+  constructor(parent: SymbolTable | null = null) {
     this.table = new Map();
+    this.parent = parent;
   }
 
   get(key: string): Symbol {
     const symbol = this.table.get(key);
     if (isTruthy(symbol)) return symbol;
+    if (isTruthy(this.parent)) return this.parent.get(key);
     throw new Error(`Name error: identifier '${key}' is not defined`);
   }
 

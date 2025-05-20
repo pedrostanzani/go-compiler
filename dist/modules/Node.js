@@ -1,10 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Scan = exports.If = exports.While = exports.VarDec = exports.Assignment = exports.Print = exports.Block = exports.Identifier = exports.NoOp = exports.BoolVal = exports.StringVal = exports.IntVal = exports.UnOp = exports.BinOp = void 0;
+exports.Return = exports.FuncCall = exports.FuncDec = exports.Scan = exports.If = exports.While = exports.VarDec = exports.Assignment = exports.Print = exports.Block = exports.Identifier = exports.NoOp = exports.BoolVal = exports.StringVal = exports.IntVal = exports.UnOp = exports.BinOp = void 0;
 const enums_1 = require("../lib/enums");
 const input_1 = require("../lib/input");
 const utils_1 = require("../lib/utils");
 const SymbolTable_1 = require("./SymbolTable");
+var NamedClass;
+(function (NamedClass) {
+    NamedClass["RETURN"] = "RETURN";
+    NamedClass["BLOCK"] = "BLOCK";
+})(NamedClass || (NamedClass = {}));
 class BinOp {
     value;
     children;
@@ -287,15 +292,26 @@ class Identifier {
 }
 exports.Identifier = Identifier;
 class Block {
+    className;
     value;
     children;
     constructor({ children }) {
+        this.className = NamedClass.BLOCK;
         this.value = null;
         this.children = children;
     }
     evaluate(symbolTable) {
         this.children.forEach((child) => {
-            child.evaluate(symbolTable);
+            if (child.className === NamedClass.RETURN) {
+                return child.evaluate(symbolTable);
+            }
+            else if (child.className === NamedClass.BLOCK) {
+                const newSymbolTable = new SymbolTable_1.SymbolTable(symbolTable);
+                child.evaluate(newSymbolTable);
+            }
+            else {
+                child.evaluate(symbolTable);
+            }
         });
         return {
             type: SymbolTable_1.SymbolType.INT,
@@ -445,3 +461,89 @@ class Scan {
     }
 }
 exports.Scan = Scan;
+class FuncDec {
+    value;
+    children;
+    constructor({ value, children, }) {
+        this.value = value;
+        this.children = children;
+    }
+    evaluate(symbolTable) {
+        const identifier = this.children[0];
+        if (typeof identifier.value !== "string") {
+            throw new Error("Cannot assign to literal");
+        }
+        symbolTable.declare(identifier.value, SymbolTable_1.SymbolType.FUNC);
+        symbolTable.setSymbol(identifier.value, {
+            type: SymbolTable_1.SymbolType.FUNC,
+            value: {
+                declaration: this,
+                returnType: this.value,
+            },
+        });
+        return {
+            type: SymbolTable_1.SymbolType.INT,
+            value: 0,
+        };
+    }
+}
+exports.FuncDec = FuncDec;
+class FuncCall {
+    value;
+    children;
+    constructor({ children, value, }) {
+        this.value = value;
+        this.children = children;
+    }
+    evaluate(symbolTable) {
+        const symbol = symbolTable.get(this.value);
+        const funcSym = symbol.value;
+        if (symbol.type !== SymbolTable_1.SymbolType.FUNC ||
+            !(0, utils_1.isTruthy)(funcSym) ||
+            typeof funcSym !== "object") {
+            throw new Error(`${this.value} is not callable`);
+        }
+        // myFn = (a, b, c) => a + b + c
+        // myFn(1, 2, 3)
+        // a, b, c are params
+        // 1, 2, 3 are args
+        const funcDec = funcSym.declaration;
+        const funcDecParams = this.children.slice(1, -1);
+        const funcCallArgs = this.children;
+        if (funcCallArgs.length !== funcDecParams.length) {
+            throw new Error(`expecting ${funcDecParams.length} params, got ${funcCallArgs.length}`);
+        }
+        const newSymbolTable = new SymbolTable_1.SymbolTable(symbolTable);
+        for (let i = 0; i < funcCallArgs.length; i++) {
+            const parameter = funcDecParams[i];
+            const argument = funcCallArgs[i];
+            const parameterIdentifier = parameter.children[0];
+            if (typeof parameterIdentifier.value !== "string") {
+                throw new Error("Expected param identifier to be string");
+            }
+            newSymbolTable.declare(parameterIdentifier.value, parameter.value);
+            newSymbolTable.setSymbol(parameterIdentifier.value, argument.evaluate(symbolTable));
+        }
+        const evaluatedBlock = funcDec.evaluate(newSymbolTable);
+        if (evaluatedBlock.type !== funcSym.returnType) {
+            throw new Error("Unexpected function return type");
+        }
+        return evaluatedBlock;
+    }
+}
+exports.FuncCall = FuncCall;
+class Return {
+    className;
+    value;
+    children;
+    constructor({ children }) {
+        this.className = NamedClass.RETURN;
+        this.value = null;
+        this.children = children;
+    }
+    evaluate(symbolTable) {
+        const [child] = this.children;
+        return child.evaluate(symbolTable);
+    }
+}
+exports.Return = Return;

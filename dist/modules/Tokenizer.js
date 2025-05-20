@@ -97,6 +97,9 @@ class Tokenizer {
             case enums_1.TokenRepresentation.LESS_THAN:
                 this.position++;
                 return new Token_1.Token({ type: enums_1.TokenType.LESS_THAN });
+            case enums_1.TokenRepresentation.COMMA:
+                this.position++;
+                return new Token_1.Token({ type: enums_1.TokenType.COMMA });
             case enums_1.TokenRepresentation.QUOTE:
                 let stringValue = "";
                 this.position++;
@@ -180,6 +183,14 @@ class Tokenizer {
                     return new Token_1.Token({
                         type: enums_1.TokenType.TYPE,
                         value: SymbolTable_1.SymbolType.BOOL,
+                    });
+                case enums_1.TokenRepresentation.RETURN:
+                    return new Token_1.Token({
+                        type: enums_1.TokenType.RETURN,
+                    });
+                case enums_1.TokenRepresentation.FUNC:
+                    return new Token_1.Token({
+                        type: enums_1.TokenType.FUNC,
                     });
                 default:
                     return new Token_1.Token({

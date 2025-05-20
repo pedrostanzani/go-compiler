@@ -119,6 +119,10 @@ export class Tokenizer {
         this.position++;
         return new Token({ type: TokenType.LESS_THAN });
 
+      case TokenRepresentation.COMMA:
+        this.position++;
+        return new Token({ type: TokenType.COMMA });
+
       case TokenRepresentation.QUOTE:
         let stringValue = "";
         this.position++;
@@ -217,6 +221,16 @@ export class Tokenizer {
           return new Token({
             type: TokenType.TYPE,
             value: SymbolType.BOOL,
+          });
+
+        case TokenRepresentation.RETURN:
+          return new Token({
+            type: TokenType.RETURN,
+          });
+
+        case TokenRepresentation.FUNC:
+          return new Token({
+            type: TokenType.FUNC,
           });
 
         default:

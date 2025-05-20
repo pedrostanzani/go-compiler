@@ -7,17 +7,21 @@ var SymbolType;
     SymbolType["STRING"] = "STRING";
     SymbolType["INT"] = "INT";
     SymbolType["BOOL"] = "BOOL";
+    SymbolType["FUNC"] = "FUNC";
 })(SymbolType || (exports.SymbolType = SymbolType = {}));
-;
 class SymbolTable {
     table;
-    constructor() {
+    parent;
+    constructor(parent = null) {
         this.table = new Map();
+        this.parent = parent;
     }
     get(key) {
         const symbol = this.table.get(key);
         if ((0, utils_1.isTruthy)(symbol))
             return symbol;
+        if ((0, utils_1.isTruthy)(this.parent))
+            return this.parent.get(key);
         throw new Error(`Name error: identifier '${key}' is not defined`);
     }
     setSymbol(key, symbol) {

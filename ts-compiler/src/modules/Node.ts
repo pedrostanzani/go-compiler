@@ -1,7 +1,12 @@
 import { TokenType } from "../lib/enums";
 import { Input } from "../lib/input";
 import { isTruthy } from "../lib/utils";
-import { InitializedSymbol, SymbolTable, SymbolType } from "./SymbolTable";
+import {
+  InitializedSymbol,
+  SymbolTable,
+  SymbolType,
+  ValidFunctionReturnType,
+} from "./SymbolTable";
 import { Token } from "./Token";
 
 type LogicalOperator =
@@ -20,9 +25,15 @@ type Operator =
 type Variant = number | string | boolean | Operator | null;
 
 export interface TreeNode<V> {
+  className?: string;
   value: V;
   children: TreeNode<Variant>[];
   evaluate: (symbolTable: SymbolTable) => InitializedSymbol;
+}
+
+enum NamedClass {
+  RETURN = "RETURN",
+  BLOCK = "BLOCK",
 }
 
 export type GenericTreeNode = TreeNode<Variant>;
@@ -391,17 +402,26 @@ export class Identifier implements TreeNode<string> {
 }
 
 export class Block implements TreeNode<null> {
+  className: string;
   value: null;
   children: GenericTreeNode[];
 
   constructor({ children }: { children: GenericTreeNode[] }) {
+    this.className = NamedClass.BLOCK;
     this.value = null;
     this.children = children;
   }
 
   evaluate(symbolTable: SymbolTable) {
     this.children.forEach((child) => {
-      child.evaluate(symbolTable);
+      if (child.className === NamedClass.RETURN) {
+        return child.evaluate(symbolTable);
+      } else if (child.className === NamedClass.BLOCK) {
+        const newSymbolTable = new SymbolTable(symbolTable);
+        child.evaluate(newSymbolTable);
+      } else {
+        child.evaluate(symbolTable);
+      }
     });
 
     return {
@@ -585,5 +605,131 @@ export class Scan implements TreeNode<null> {
       type: SymbolType.INT,
       value: Number(Scan.input.get()),
     };
+  }
+}
+
+export class FuncDec implements TreeNode<ValidFunctionReturnType | null> {
+  value: ValidFunctionReturnType | null;
+  children: GenericTreeNode[];
+
+  constructor({
+    value,
+    children,
+  }: {
+    value: ValidFunctionReturnType | null;
+    children: GenericTreeNode[];
+  }) {
+    this.value = value;
+    this.children = children;
+  }
+
+  evaluate(symbolTable: SymbolTable) {
+    const identifier = this.children[0];
+
+    if (typeof identifier.value !== "string") {
+      throw new Error("Cannot assign to literal");
+    }
+    symbolTable.declare(identifier.value, SymbolType.FUNC);
+    symbolTable.setSymbol(identifier.value, {
+      type: SymbolType.FUNC,
+      value: {
+        declaration: this,
+        returnType: this.value,
+      },
+    });
+
+    return {
+      type: SymbolType.INT,
+      value: 0,
+    };
+  }
+}
+
+export class FuncCall implements TreeNode<string> {
+  value: string;
+  children: GenericTreeNode[];
+
+  constructor({
+    children,
+    value,
+  }: {
+    children: GenericTreeNode[];
+    value: string;
+  }) {
+    this.value = value;
+    this.children = children;
+  }
+
+  evaluate(symbolTable: SymbolTable) {
+    const symbol = symbolTable.get(this.value);
+    const funcSym = symbol.value;
+    if (
+      symbol.type !== SymbolType.FUNC ||
+      !isTruthy(funcSym) ||
+      typeof funcSym !== "object"
+    ) {
+      throw new Error(`${this.value} is not callable`);
+    }
+
+    // myFn = (a, b, c) => a + b + c
+    // myFn(1, 2, 3)
+    // a, b, c are params
+    // 1, 2, 3 are args
+
+    const funcDec = funcSym.declaration;
+    const funcDecParams = this.children.slice(1, -1);
+
+    const funcCallArgs = this.children;
+
+    if (funcCallArgs.length !== funcDecParams.length) {
+      throw new Error(
+        `expecting ${funcDecParams.length} params, got ${funcCallArgs.length}`
+      );
+    }
+
+    const newSymbolTable = new SymbolTable(symbolTable);
+    for (let i = 0; i < funcCallArgs.length; i++) {
+      const parameter = funcDecParams[i];
+      const argument = funcCallArgs[i];
+
+      const parameterIdentifier = parameter.children[0];
+      if (typeof parameterIdentifier.value !== "string") {
+        throw new Error("Expected param identifier to be string");
+      }
+
+      newSymbolTable.declare(
+        parameterIdentifier.value,
+        parameter.value as SymbolType
+      );
+      newSymbolTable.setSymbol(
+        parameterIdentifier.value,
+        argument.evaluate(symbolTable)
+      );
+    }
+
+    const evaluatedBlock = funcDec.evaluate(newSymbolTable);
+    if (evaluatedBlock.type !== funcSym.returnType) {
+      throw new Error("Unexpected function return type");
+    }
+
+    return evaluatedBlock;
+  }
+}
+
+export class Return implements TreeNode<null> {
+  className: string;
+  value: null;
+  children: GenericTreeNode[];
+
+  constructor({ children }: { children: GenericTreeNode[] }) {
+    this.className = NamedClass.RETURN;
+    this.value = null;
+    this.children = children;
+  }
+
+  evaluate(symbolTable: SymbolTable) {
+    const [child] = this.children;
+
+    return child.evaluate(symbolTable);
   }
 }

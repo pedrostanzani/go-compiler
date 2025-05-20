@@ -7,6 +7,10 @@ var TokenType;
     TokenType["INT"] = "INT";
     TokenType["STRING"] = "STRING";
     TokenType["BOOL"] = "BOOL";
+    // Functions
+    TokenType["FUNC"] = "FUNC";
+    TokenType["COMMA"] = "COMMA";
+    TokenType["RETURN"] = "RETURN";
     // Type declarations
     TokenType["VAR"] = "VAR";
     TokenType["TYPE"] = "TYPE";
@@ -67,6 +71,8 @@ var TokenRepresentation;
     TokenRepresentation["CLOSE_PAR"] = ")";
     // Quotes
     TokenRepresentation["QUOTE"] = "\"";
+    // Comma
+    TokenRepresentation["COMMA"] = ",";
     // Blocks
     TokenRepresentation["OPEN_BRAC"] = "{";
     TokenRepresentation["CLOSE_BRAC"] = "}";
@@ -80,6 +86,8 @@ var TokenRepresentation;
     TokenRepresentation["PRINT"] = "Println";
     TokenRepresentation["READ"] = "Scan";
     TokenRepresentation["VAR"] = "var";
+    TokenRepresentation["FUNC"] = "func";
+    TokenRepresentation["RETURN"] = "return";
     // Types
     TokenRepresentation["INT"] = "int";
     TokenRepresentation["STR"] = "string";
