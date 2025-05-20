@@ -677,8 +677,7 @@ export class FuncCall implements TreeNode<string> {
     // 1, 2, 3 are args
 
     const funcDec = funcSym.declaration;
-    const funcDecParams = this.children.slice(1, -1);
-
+    const funcDecParams = funcDec.children.slice(1, -1);
     const funcCallArgs = this.children;
 
     if (funcCallArgs.length !== funcDecParams.length) {
@@ -707,7 +706,8 @@ export class FuncCall implements TreeNode<string> {
       );
     }
 
-    const evaluatedBlock = funcDec.evaluate(newSymbolTable);
+    const funcDecBlock = funcDec.children[funcDec.children.length - 1];
+    const evaluatedBlock = funcDecBlock.evaluate(newSymbolTable);
     if (funcSym.returnType !== null && evaluatedBlock.type !== funcSym.returnType) {
       throw new Error("Unexpected function return type");
     }

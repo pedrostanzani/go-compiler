@@ -508,7 +508,7 @@ class FuncCall {
         // a, b, c are params
         // 1, 2, 3 are args
         const funcDec = funcSym.declaration;
-        const funcDecParams = this.children.slice(1, -1);
+        const funcDecParams = funcDec.children.slice(1, -1);
         const funcCallArgs = this.children;
         if (funcCallArgs.length !== funcDecParams.length) {
             throw new Error(`expecting ${funcDecParams.length} params, got ${funcCallArgs.length}`);
@@ -524,7 +524,8 @@ class FuncCall {
             newSymbolTable.declare(parameterIdentifier.value, parameter.value);
             newSymbolTable.setSymbol(parameterIdentifier.value, argument.evaluate(symbolTable));
         }
-        const evaluatedBlock = funcDec.evaluate(newSymbolTable);
+        const funcDecBlock = funcDec.children[funcDec.children.length - 1];
+        const evaluatedBlock = funcDecBlock.evaluate(newSymbolTable);
         if (funcSym.returnType !== null && evaluatedBlock.type !== funcSym.returnType) {
             throw new Error("Unexpected function return type");
         }
