@@ -564,6 +564,10 @@ class Parser {
                 children.push(this.parseVarDeclaration());
                 continue;
             }
+            this.throwUnexpectedToken({
+                fn: "parseProgram",
+                details: `Expected EOF, FUNC or VAR but got ${this.tokenizer.getNext().getType()}`,
+            });
         }
         return new Node_1.Block({ children });
     }
