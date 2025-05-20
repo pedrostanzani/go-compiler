@@ -131,7 +131,6 @@ export class Parser {
       this.tokenizer.selectNext();
 
       if (this.tokenizer.getNext().getType() !== TokenType.OPEN_PAR) {
-        this.tokenizer.selectNext();
         return identifierNode;
       }
 
