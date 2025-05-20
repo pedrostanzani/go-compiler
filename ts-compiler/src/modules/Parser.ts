@@ -16,7 +16,6 @@ import {
   Print,
   Scan,
   StringVal,
-  TreeNode,
   UnOp,
   VarDec,
   While,
