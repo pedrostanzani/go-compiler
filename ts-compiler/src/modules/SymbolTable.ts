@@ -20,6 +20,7 @@ type SymbolValue = string | number | boolean | FunctionSymbol;
 interface BaseSymbol {
   type: SymbolType;
   value: SymbolValue | null;
+  explicit?: boolean;
 }
 export interface InitializedSymbol extends BaseSymbol {
   value: SymbolValue;

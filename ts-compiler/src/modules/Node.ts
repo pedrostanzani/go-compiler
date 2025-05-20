@@ -413,16 +413,20 @@ export class Block implements TreeNode<null> {
   }
 
   evaluate(symbolTable: SymbolTable) {
-    this.children.forEach((child) => {
+    for (const child of this.children) {
       if (child.className === NamedClass.RETURN) {
-        return child.evaluate(symbolTable);
+        const ev = child.evaluate(symbolTable);
+        return {
+          ...ev,
+          explicit: true,
+        };
       } else if (child.className === NamedClass.BLOCK) {
         const newSymbolTable = new SymbolTable(symbolTable);
         child.evaluate(newSymbolTable);
       } else {
         child.evaluate(symbolTable);
       }
-    });
+    }
 
     return {
       type: SymbolType.INT,
@@ -442,7 +446,6 @@ export class Print implements TreeNode<null> {
 
   evaluate(symbolTable: SymbolTable) {
     const child = this.children[0];
-    // console.log("--->", symbolTable)
     console.log(child.evaluate(symbolTable).value);
     return {
       type: SymbolType.INT,
@@ -710,6 +713,12 @@ export class FuncCall implements TreeNode<string> {
     const evaluatedBlock = funcDecBlock.evaluate(newSymbolTable);
     if (funcSym.returnType !== null && evaluatedBlock.type !== funcSym.returnType) {
       throw new Error("Unexpected function return type");
+    }
+
+    if (funcSym.returnType === null) {
+      if (evaluatedBlock.type !== SymbolType.INT || evaluatedBlock.value !== 0 || evaluatedBlock.explicit) {
+        throw new Error("Unexpected function return type");
+      }
     }
 
     return evaluatedBlock;
