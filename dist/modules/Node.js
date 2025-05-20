@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Return = exports.FuncCall = exports.FuncDec = exports.Scan = exports.If = exports.While = exports.VarDec = exports.Assignment = exports.Print = exports.Block = exports.Identifier = exports.NoOp = exports.BoolVal = exports.StringVal = exports.IntVal = exports.UnOp = exports.BinOp = void 0;
 const enums_1 = require("../lib/enums");
+const hooks_1 = require("../lib/hooks");
 const input_1 = require("../lib/input");
 const utils_1 = require("../lib/utils");
 const SymbolTable_1 = require("./SymbolTable");
@@ -528,7 +529,22 @@ class FuncCall {
             newSymbolTable.setSymbol(parameterIdentifier.value, argument.evaluate(symbolTable));
         }
         const funcDecBlock = funcDec.children[funcDec.children.length - 1];
-        const evaluatedBlock = funcDecBlock.evaluate(newSymbolTable);
+        let evaluatedBlock;
+        try {
+            evaluatedBlock = funcDecBlock.evaluate(newSymbolTable);
+        }
+        catch (error) {
+            if (error instanceof hooks_1.OnReturn) {
+                evaluatedBlock = {
+                    type: error.type,
+                    value: error.value,
+                    explicit: error.explicit,
+                };
+            }
+            else {
+                throw error;
+            }
+        }
         if (funcSym.returnType !== null && evaluatedBlock.type !== funcSym.returnType) {
             throw new Error("Unexpected function return type");
         }
@@ -552,7 +568,8 @@ class Return {
     }
     evaluate(symbolTable) {
         const [child] = this.children;
-        return child.evaluate(symbolTable);
+        const ev = child.evaluate(symbolTable);
+        throw new hooks_1.OnReturn(ev.value, ev.type, true);
     }
 }
 exports.Return = Return;

@@ -1,4 +1,5 @@
 import { TokenType } from "../lib/enums";
+import { OnReturn } from "../lib/hooks";
 import { Input } from "../lib/input";
 import { isTruthy } from "../lib/utils";
 import {
@@ -710,7 +711,22 @@ export class FuncCall implements TreeNode<string> {
     }
 
     const funcDecBlock = funcDec.children[funcDec.children.length - 1];
-    const evaluatedBlock = funcDecBlock.evaluate(newSymbolTable);
+
+    let evaluatedBlock: InitializedSymbol;
+    try {
+      evaluatedBlock = funcDecBlock.evaluate(newSymbolTable);
+    } catch (error) {
+      if (error instanceof OnReturn) {
+        evaluatedBlock = {
+          type: error.type,
+          value: error.value,
+          explicit: error.explicit,
+        };
+      } else {
+        throw error;
+      }
+    }
+    
     if (funcSym.returnType !== null && evaluatedBlock.type !== funcSym.returnType) {
       throw new Error("Unexpected function return type");
     }
@@ -736,9 +752,9 @@ export class Return implements TreeNode<null> {
     this.children = children;
   }
 
-  evaluate(symbolTable: SymbolTable) {
+  evaluate(symbolTable: SymbolTable): never {
     const [child] = this.children;
-
-    return child.evaluate(symbolTable);
+    const ev = child.evaluate(symbolTable);
+    throw new OnReturn(ev.value, ev.type, true);
   }
 }

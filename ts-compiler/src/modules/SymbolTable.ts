@@ -15,7 +15,7 @@ type FunctionSymbol = {
   returnType: ValidFunctionReturnType | null;
 }
 
-type SymbolValue = string | number | boolean | FunctionSymbol;
+export type SymbolValue = string | number | boolean | FunctionSymbol;
 
 interface BaseSymbol {
   type: SymbolType;
