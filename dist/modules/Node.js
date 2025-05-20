@@ -525,7 +525,7 @@ class FuncCall {
             newSymbolTable.setSymbol(parameterIdentifier.value, argument.evaluate(symbolTable));
         }
         const evaluatedBlock = funcDec.evaluate(newSymbolTable);
-        if (evaluatedBlock.type !== funcSym.returnType) {
+        if (funcSym.returnType !== null && evaluatedBlock.type !== funcSym.returnType) {
             throw new Error("Unexpected function return type");
         }
         return evaluatedBlock;

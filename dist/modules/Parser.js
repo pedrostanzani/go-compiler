@@ -69,7 +69,6 @@ class Parser {
             const identifierNode = new Node_1.Identifier({ token: identifierToken });
             this.tokenizer.selectNext();
             if (this.tokenizer.getNext().getType() !== enums_1.TokenType.OPEN_PAR) {
-                this.tokenizer.selectNext();
                 return identifierNode;
             }
             this.tokenizer.selectNext();
