@@ -1,9 +1,13 @@
-
 export enum TokenType {
   // Primitives
   INT = "INT",
   STRING = "STRING",
   BOOL = "BOOL",
+
+  // Functions
+  FUNC = "FUNC",
+  COMMA = "COMMA",
+  RETURN = "RETURN",
 
   // Type declarations
   VAR = "VAR",
@@ -79,7 +83,10 @@ export enum TokenRepresentation {
   CLOSE_PAR = ")",
 
   // Quotes
-  QUOTE = "\"",
+  QUOTE = '"',
+
+  // Comma
+  COMMA = ",",
 
   // Blocks
   OPEN_BRAC = "{",
@@ -97,6 +104,8 @@ export enum TokenRepresentation {
   PRINT = "Println",
   READ = "Scan",
   VAR = "var",
+  FUNC = "func",
+  RETURN = "return",
 
   // Types
   INT = "int",

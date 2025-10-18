@@ -1,7 +1,6 @@
 import { readFileSync } from "fs";
 import { Parser } from "./modules/Parser";
 import { SymbolTable } from "./modules/SymbolTable";
-import { code as codeInstance } from "./modules/Code";
 
 const main = () => {
   const argument = process.argv[2];
@@ -24,8 +23,7 @@ const main = () => {
 
   const ast = Parser.run(sourceCode);
   const symbolTable = new SymbolTable();
-  ast.generate(symbolTable);
-  codeInstance.dump(`${argument.replace(".go", "")}.asm`);
+  ast.evaluate(symbolTable);
 };
 
 main();

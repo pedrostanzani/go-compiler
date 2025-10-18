@@ -1,15 +1,14 @@
 import { TokenType } from "../lib/enums";
+import { OnReturn } from "../lib/hooks";
 import { Input } from "../lib/input";
 import { isTruthy } from "../lib/utils";
 import {
-  BYTE_SHIFT_INCREMENT,
   InitializedSymbol,
   SymbolTable,
   SymbolType,
+  ValidFunctionReturnType,
 } from "./SymbolTable";
 import { Token } from "./Token";
-import { nodeIdService } from "./NodeIdService";
-import { code as codeInstance } from "./Code";
 
 type LogicalOperator =
   | TokenType.OR
@@ -27,17 +26,20 @@ type Operator =
 type Variant = number | string | boolean | Operator | null;
 
 export interface TreeNode<V> {
-  id: number;
+  className?: string;
   value: V;
   children: TreeNode<Variant>[];
   evaluate: (symbolTable: SymbolTable) => InitializedSymbol;
-  generate: (symbolTable: SymbolTable) => void;
+}
+
+enum NamedClass {
+  RETURN = "RETURN",
+  BLOCK = "BLOCK",
 }
 
 export type GenericTreeNode = TreeNode<Variant>;
 
 export class BinOp implements TreeNode<Operator | LogicalOperator> {
-  id: number;
   value: Operator | LogicalOperator;
   children: GenericTreeNode[];
 
@@ -48,8 +50,6 @@ export class BinOp implements TreeNode<Operator | LogicalOperator> {
     value: Operator | LogicalOperator;
     children: GenericTreeNode[];
   }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = value;
     this.children = children;
   }
@@ -249,85 +249,11 @@ export class BinOp implements TreeNode<Operator | LogicalOperator> {
       value: 0,
     };
   }
-
-  generate(symbolTable: SymbolTable) {
-    const [firstChild, secondChild] = this.children;
-
-    if (
-      this.value === TokenType.PLUS ||
-      this.value === TokenType.MINUS ||
-      this.value === TokenType.DIVIDE ||
-      this.value === TokenType.X
-    ) {
-      secondChild.generate(symbolTable);
-      codeInstance.append(`push eax ;`);
-
-      firstChild.generate(symbolTable);
-      codeInstance.append(`pop ecx ;`);
-
-      switch (this.value) {
-        case TokenType.PLUS:
-          codeInstance.append(`add eax, ecx ;`);
-          return;
-
-        case TokenType.MINUS:
-          codeInstance.append(`sub eax, ecx ;`);
-          return;
-
-        case TokenType.DIVIDE:
-          codeInstance.append(`cdq           ;`);
-          codeInstance.append(`idiv  ecx     ;`);
-          return;
-
-        case TokenType.X:
-          codeInstance.append(`imul  ecx     ;`);
-          return;
-      }
-    } else {
-      secondChild.generate(symbolTable);
-      codeInstance.append(`push eax ;`);
-
-      firstChild.generate(symbolTable);
-      codeInstance.append(`pop ecx ;`);
-
-      switch (this.value) {
-        case TokenType.EQUALS:
-          codeInstance.append(`cmp eax, ecx ;`);
-          codeInstance.append(`mov ecx, 1   ;`);
-          codeInstance.append(`mov eax, 0   ;`);
-          codeInstance.append(`cmove eax, ecx ;`);
-          return;
-
-        case TokenType.GREATER_THAN:
-          codeInstance.append(`cmp eax, ecx ;`);
-          codeInstance.append(`mov ecx, 1   ;`);
-          codeInstance.append(`mov eax, 0   ;`);
-          codeInstance.append(`cmovg eax, ecx ;`);
-          return;
-
-        case TokenType.LESS_THAN:
-          codeInstance.append(`cmp eax, ecx ;`);
-          codeInstance.append(`mov ecx, 1   ;`);
-          codeInstance.append(`mov eax, 0   ;`);
-          codeInstance.append(`cmovl eax, ecx ;`);
-          return;
-
-        case TokenType.OR:
-          codeInstance.append(`or eax, ecx ;`);
-          return;
-
-        case TokenType.AND:
-          codeInstance.append(`and eax, ecx ;`);
-          return;
-      }
-    }
-  }
 }
 
 export class UnOp
   implements TreeNode<TokenType.PLUS | TokenType.MINUS | TokenType.NOT>
 {
-  id: number;
   value: TokenType.PLUS | TokenType.MINUS | TokenType.NOT;
   children: GenericTreeNode[];
 
@@ -338,8 +264,6 @@ export class UnOp
     value: TokenType.PLUS | TokenType.MINUS | TokenType.NOT;
     children: GenericTreeNode[];
   }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = value;
     this.children = children;
   }
@@ -375,26 +299,9 @@ export class UnOp
           };
     }
   }
-
-  generate(symbolTable: SymbolTable) {
-    const child = this.children[0];
-
-    if (this.value === TokenType.MINUS) {
-      child.generate(symbolTable);
-      codeInstance.append(`neg eax;`);
-    } else if (this.value === TokenType.PLUS) {
-      child.generate(symbolTable);
-    } else {
-      child.generate(symbolTable);
-      codeInstance.append(`test eax, eax;`);
-      codeInstance.append(`setz al;`);
-      codeInstance.append(`movzx eax, al;`);
-    }
-  }
 }
 
 export class IntVal implements TreeNode<number> {
-  id: number;
   value: number;
   children: TreeNode<never>[];
 
@@ -405,8 +312,6 @@ export class IntVal implements TreeNode<number> {
     value: number;
     children: TreeNode<never>[];
   }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = value;
     this.children = children;
   }
@@ -417,20 +322,13 @@ export class IntVal implements TreeNode<number> {
       value: this.value,
     };
   }
-
-  generate() {
-    codeInstance.append(`mov eax, ${this.value} ;`);
-  }
 }
 
 export class StringVal implements TreeNode<string> {
-  id: number;
   value: string;
   children: TreeNode<never>[];
 
   constructor({ value }: { value: string }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = value;
     this.children = [];
   }
@@ -441,18 +339,13 @@ export class StringVal implements TreeNode<string> {
       value: this.value,
     };
   }
-
-  generate() {}
 }
 
 export class BoolVal implements TreeNode<boolean> {
-  id: number;
   value: boolean;
   children: TreeNode<never>[];
 
   constructor({ value }: { value: boolean }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = value;
     this.children = [];
   }
@@ -463,20 +356,13 @@ export class BoolVal implements TreeNode<boolean> {
       value: this.value,
     };
   }
-
-  generate() {
-    codeInstance.append(`mov eax, ${this.value ? "1" : "0"} ;`);
-  }
 }
 
 export class NoOp implements TreeNode<null> {
-  id: number;
   value: null;
   children: TreeNode<never>[];
 
   constructor() {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = null;
     this.children = [];
   }
@@ -487,12 +373,9 @@ export class NoOp implements TreeNode<null> {
       value: this.value ?? 0,
     };
   }
-
-  generate() {}
 }
 
 export class Identifier implements TreeNode<string> {
-  id: number;
   value: string;
   children: TreeNode<never>[];
 
@@ -501,8 +384,6 @@ export class Identifier implements TreeNode<string> {
       throw new Error("Expected identifier token.");
     }
 
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = token.getStringValue();
     this.children = [];
   }
@@ -519,88 +400,66 @@ export class Identifier implements TreeNode<string> {
       value: symbol.value,
     };
   }
-
-  generate(symbolTable: SymbolTable) {
-    const sym = symbolTable.get(this.value);
-    if (sym.offset == null) {
-      throw new Error(`No offset recorded for variable '${this.value}'`);
-    }
-    
-    codeInstance.append(`mov eax, [ebp-${sym.offset}] ;`);
-  }
 }
 
 export class Block implements TreeNode<null> {
-  id: number;
+  className: string;
   value: null;
   children: GenericTreeNode[];
 
   constructor({ children }: { children: GenericTreeNode[] }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
+    this.className = NamedClass.BLOCK;
     this.value = null;
     this.children = children;
   }
 
   evaluate(symbolTable: SymbolTable) {
-    this.children.forEach((child) => {
-      child.evaluate(symbolTable);
-    });
+    for (const child of this.children) {
+      if (child.className === NamedClass.RETURN) {
+        const ev = child.evaluate(symbolTable);
+        return {
+          ...ev,
+          explicit: true,
+        };
+      } else if (child.className === NamedClass.BLOCK) {
+        const newSymbolTable = new SymbolTable(symbolTable);
+        child.evaluate(newSymbolTable);
+      } else {
+        child.evaluate(symbolTable);
+      }
+    }
 
     return {
       type: SymbolType.INT,
       value: 0,
     };
   }
-
-  generate(symbolTable: SymbolTable) {
-    this.children.forEach((child) => {
-      child.generate(symbolTable);
-    });
-  }
 }
 
 export class Print implements TreeNode<null> {
-  id: number;
   value: null;
   children: GenericTreeNode[];
 
   constructor({ children }: { children: GenericTreeNode[] }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = null;
     this.children = children;
   }
 
   evaluate(symbolTable: SymbolTable) {
     const child = this.children[0];
-    // console.log("--->", symbolTable)
     console.log(child.evaluate(symbolTable).value);
     return {
       type: SymbolType.INT,
       value: 0,
     };
   }
-
-  generate(symbolTable: SymbolTable): void {
-    const expr = this.children[0];
-
-    expr.generate(symbolTable);
-    codeInstance.append(`push eax ;`);
-    codeInstance.append(`push format_out ;`);
-    codeInstance.append(`call printf ;`);
-    codeInstance.append(`add esp, 8 ;`);
-  }
 }
 
 export class Assignment implements TreeNode<null> {
-  id: number;
   value: null;
   children: GenericTreeNode[];
 
   constructor({ children }: { children: GenericTreeNode[] }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = null;
     this.children = children;
   }
@@ -619,27 +478,9 @@ export class Assignment implements TreeNode<null> {
       value: 0,
     };
   }
-
-  generate(symbolTable: SymbolTable) {
-    const [firstChild, secondChild] = this.children;
-    if (typeof firstChild.value !== "string") {
-      throw new Error("Cannot assign to literal");
-    }
-
-    secondChild.generate(symbolTable);
-
-    const sym = symbolTable.get(firstChild.value);
-    if (sym.offset == null) {
-      throw new Error(`No offset recorded for variable '${firstChild.value}'`);
-    }
-
-    // 4) emit the store instruction
-    codeInstance.append(`mov [ebp-${sym.offset}], eax ;`);
-  }
 }
 
 export class VarDec implements TreeNode<SymbolType> {
-  id: number;
   value: SymbolType;
   children: GenericTreeNode[];
 
@@ -650,8 +491,6 @@ export class VarDec implements TreeNode<SymbolType> {
     children: GenericTreeNode[];
     value: SymbolType;
   }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = value;
     this.children = children;
   }
@@ -686,38 +525,13 @@ export class VarDec implements TreeNode<SymbolType> {
       value: 0,
     };
   }
-
-  generate(symbolTable: SymbolTable) {
-    const idNode = this.children[0];
-    if (typeof idNode.value !== "string") {
-      throw new Error("Cannot declare a non-identifier");
-    }
-
-    symbolTable.declare(idNode.value, this.value);
-    codeInstance.append(`sub esp, ${BYTE_SHIFT_INCREMENT} ;`);
-
-    if (this.children.length === 2) {
-      const initExpr = this.children[1];
-      initExpr.generate(symbolTable);
-
-      const sym = symbolTable.get(idNode.value);
-      if (sym.offset == null) {
-        throw new Error(`No offset for variable '${this.value}'`);
-      }
-
-      codeInstance.append(`mov [ebp-${sym.offset}], eax ;`);
-    }
-  }
 }
 
 export class While implements TreeNode<null> {
-  id: number;
   value: null;
   children: GenericTreeNode[];
 
   constructor({ children }: { children: GenericTreeNode[] }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = null;
     this.children = children;
   }
@@ -745,31 +559,13 @@ export class While implements TreeNode<null> {
       value: 0,
     };
   }
-
-  generate(symbolTable: SymbolTable): void {
-    const [firstChild, secondChild] = this.children;
-
-    const loopLabel = `loop_${this.id}`;
-    const exitLabel = `exit_${this.id}`;
-
-    codeInstance.append(`${loopLabel}:`);
-    firstChild.generate(symbolTable);
-    codeInstance.append(`cmp eax, 0 ;`);
-    codeInstance.append(`je  ${exitLabel} ;`);
-    secondChild.generate(symbolTable);
-    codeInstance.append(`jmp ${loopLabel} ;`);
-    codeInstance.append(`${exitLabel}:`);
-  }
 }
 
 export class If implements TreeNode<null> {
-  id: number;
   value: null;
   children: GenericTreeNode[];
 
   constructor({ children }: { children: GenericTreeNode[] }) {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = null;
     this.children = children;
   }
@@ -795,43 +591,15 @@ export class If implements TreeNode<null> {
       value: 0,
     };
   }
-
-  generate(symbolTable: SymbolTable): void {
-    const [condition, ifBlock, elseBlock] = this.children;
-
-    const elseLabel = `else_${this.id}`;
-    const exitLabel = `exit_${this.id}`;
-
-    condition.generate(symbolTable);
-    codeInstance.append(`cmp eax, 0 ;`);
-    if (isTruthy(elseBlock)) {
-      codeInstance.append(`je  ${elseLabel} ;`);
-    } else {
-      codeInstance.append(`je  ${exitLabel} ;`);
-    }
-
-    ifBlock.generate(symbolTable);
-    codeInstance.append(`jmp ${exitLabel} ;`);
-
-    if (isTruthy(elseBlock)) {
-      codeInstance.append(`${elseLabel}:`);
-      elseBlock.generate(symbolTable);
-    }
-
-    codeInstance.append(`${exitLabel}:`);
-  }
 }
 
 export class Scan implements TreeNode<null> {
   private static input: Input = new Input("syncprompt");
 
-  id: number;
   value: null;
   children: GenericTreeNode[];
 
   constructor() {
-    this.id = nodeIdService.getId();
-    nodeIdService.increment();
     this.value = null;
     this.children = [];
   }
@@ -842,12 +610,151 @@ export class Scan implements TreeNode<null> {
       value: Number(Scan.input.get()),
     };
   }
+}
 
-  generate(): void {
-    codeInstance.append(`push scan_int ;`);
-    codeInstance.append(`push format_in ;`);
-    codeInstance.append(`call scanf ;`);
-    codeInstance.append(`add esp, 8 ;`);
-    codeInstance.append(`mov eax, dword [scan_int] ;`);
+export class FuncDec implements TreeNode<ValidFunctionReturnType | null> {
+  value: ValidFunctionReturnType | null;
+  children: GenericTreeNode[];
+
+  constructor({
+    value,
+    children,
+  }: {
+    value: ValidFunctionReturnType | null;
+    children: GenericTreeNode[];
+  }) {
+    this.value = value;
+    this.children = children;
+  }
+
+  evaluate(symbolTable: SymbolTable) {
+    const identifier = this.children[0];
+
+    if (typeof identifier.value !== "string") {
+      throw new Error("Cannot assign to literal");
+    }
+    symbolTable.declare(identifier.value, SymbolType.FUNC);
+    symbolTable.setSymbol(identifier.value, {
+      type: SymbolType.FUNC,
+      value: {
+        declaration: this,
+        returnType: this.value,
+      },
+    });
+
+    return {
+      type: SymbolType.INT,
+      value: 0,
+    };
+  }
+}
+
+export class FuncCall implements TreeNode<string> {
+  value: string;
+  children: GenericTreeNode[];
+
+  constructor({
+    children,
+    value,
+  }: {
+    children: GenericTreeNode[];
+    value: string;
+  }) {
+    this.value = value;
+    this.children = children;
+  }
+
+  evaluate(symbolTable: SymbolTable) {
+    const symbol = symbolTable.get(this.value);
+    const funcSym = symbol.value;
+    if (
+      symbol.type !== SymbolType.FUNC ||
+      !isTruthy(funcSym) ||
+      typeof funcSym !== "object"
+    ) {
+      throw new Error(`${this.value} is not callable`);
+    }
+
+    // myFn = (a, b, c) => a + b + c
+    // myFn(1, 2, 3)
+    // a, b, c are params
+    // 1, 2, 3 are args
+
+    const funcDec = funcSym.declaration;
+    const funcDecParams = funcDec.children.slice(1, -1);
+    const funcCallArgs = this.children;
+
+    if (funcCallArgs.length !== funcDecParams.length) {
+      throw new Error(
+        `expecting ${funcDecParams.length} params, got ${funcCallArgs.length}`
+      );
+    }
+
+    const newSymbolTable = new SymbolTable(symbolTable);
+    for (let i = 0; i < funcCallArgs.length; i++) {
+      const parameter = funcDecParams[i];
+      const argument = funcCallArgs[i];
+
+      const parameterIdentifier = parameter.children[0];
+      if (typeof parameterIdentifier.value !== "string") {
+        throw new Error("Expected param identifier to be string");
+      }
+
+      newSymbolTable.declare(
+        parameterIdentifier.value,
+        parameter.value as SymbolType
+      );
+      newSymbolTable.setSymbol(
+        parameterIdentifier.value,
+        argument.evaluate(symbolTable)
+      );
+    }
+
+    const funcDecBlock = funcDec.children[funcDec.children.length - 1];
+
+    let evaluatedBlock: InitializedSymbol;
+    try {
+      evaluatedBlock = funcDecBlock.evaluate(newSymbolTable);
+    } catch (error) {
+      if (error instanceof OnReturn) {
+        evaluatedBlock = {
+          type: error.type,
+          value: error.value,
+          explicit: error.explicit,
+        };
+      } else {
+        throw error;
+      }
+    }
+    
+    if (funcSym.returnType !== null && evaluatedBlock.type !== funcSym.returnType) {
+      throw new Error("Unexpected function return type");
+    }
+
+    if (funcSym.returnType === null) {
+      if (evaluatedBlock.type !== SymbolType.INT || evaluatedBlock.value !== 0 || evaluatedBlock.explicit) {
+        throw new Error("Unexpected function return type");
+      }
+    }
+
+    return evaluatedBlock;
+  }
+}
+
+export class Return implements TreeNode<null> {
+  className: string;
+  value: null;
+  children: GenericTreeNode[];
+
+  constructor({ children }: { children: GenericTreeNode[] }) {
+    this.className = NamedClass.RETURN;
+    this.value = null;
+    this.children = children;
+  }
+
+  evaluate(symbolTable: SymbolTable): never {
+    const [child] = this.children;
+    const ev = child.evaluate(symbolTable);
+    throw new OnReturn(ev.value, ev.type, true);
   }
 }
