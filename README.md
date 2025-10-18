@@ -1,6 +1,6 @@
-# Go Compiler (TypeScript Implementation)
+# Go Interpreter (TypeScript Implementation)
 
-A compiler written in TypeScript that parses a subset of the Go programming language and generates x86 assembly code. This compiler demonstrates the complete compilation pipeline from lexical analysis to code generation.
+An interpreter written in TypeScript that executes a subset of the Go programming language. This project demonstrates the complete interpretation pipeline from lexical analysis to direct execution.
 
 ## 🚀 Features
 
@@ -8,46 +8,53 @@ A compiler written in TypeScript that parses a subset of the Go programming lang
 
 - **Data Types**: `int`, `string`, `bool`
 - **Variables**: Declaration with `var` keyword and type annotations
+- **Functions**: Function declarations with parameters and return values
 - **Operators**:
   - Arithmetic: `+`, `-`, `*`, `/`
   - Comparison: `==`, `>`, `<`
   - Logical: `&&`, `||`, `!`
+  - String concatenation: `+`
 - **Control Flow**:
   - `if`/`else` statements
   - `for` loops (while-style)
+  - `return` statements
 - **I/O Operations**:
-  - `Println()` - Print output
-  - `Scan()` - Read input
+  - `Println()` - Print output to console
+  - `Scan()` - Read integer input from user
 - **Comments**: Single-line comments with `//`
 
-### Compilation Pipeline
+### Interpretation Pipeline
 
 1. **Preprocessing** (`PrePro`): Removes comments and empty lines
 2. **Lexical Analysis** (`Tokenizer`): Converts source code into tokens
 3. **Syntax Analysis** (`Parser`): Builds an Abstract Syntax Tree (AST)
-4. **Semantic Analysis** (`SymbolTable`): Type checking and variable management
-5. **Code Generation** (`Code`): Produces x86 assembly code
+4. **Interpretation** (`Node.evaluate()`): Directly executes the AST with runtime type checking via `SymbolTable`
 
 ## 📁 Project Structure
 
 ```
-ts-compiler/
+go-compiler/
+├── examples/                 # Example Go programs
+│   ├── basic_program.go      # Variables, conditionals, loops
+│   ├── functions.go          # Function declarations and calls
+│   ├── string_operations.go  # String concatenation
+│   └── user_input.go         # Using Scan() for input
 ├── src/
 │   ├── index.ts              # Entry point
 │   ├── lib/
 │   │   ├── debug.ts          # Debug utilities
 │   │   ├── enums.ts          # Token types and representations
+│   │   ├── hooks.ts          # OnReturn exception for function returns
 │   │   ├── input.ts          # Input handling
 │   │   └── utils.ts          # Helper functions
-│   └── modules/
-│       ├── Code.ts           # Assembly code generator
-│       ├── Node.ts           # AST node implementations
-│       ├── NodeIdService.ts  # Unique ID generator for nodes
-│       ├── Parser.ts         # Syntax analyzer
-│       ├── PrePro.ts         # Preprocessor
-│       ├── SymbolTable.ts    # Symbol table for variables
-│       ├── Token.ts          # Token class
-│       └── Tokenizer.ts      # Lexical analyzer
+│   ├── modules/
+│   │   ├── Node.ts           # AST node implementations with evaluate methods
+│   │   ├── Parser.ts         # Syntax analyzer (recursive descent)
+│   │   ├── PrePro.ts         # Preprocessor
+│   │   ├── SymbolTable.ts    # Symbol table for variables and functions
+│   │   ├── Token.ts          # Token class
+│   │   └── Tokenizer.ts      # Lexical analyzer
+│   └── source.go             # Example Go source file
 ├── package.json
 └── tsconfig.json
 ```
@@ -55,24 +62,23 @@ ts-compiler/
 ## 🛠️ Installation
 
 ```bash
-cd ts-compiler
 npm install
 ```
 
 ## 📖 Usage
 
-### Compile from a Go file
+### Run a Go file
 
 ```bash
 npm start path/to/file.go
 ```
 
-This will generate a corresponding `.asm` file in the same directory.
+The interpreter will parse and execute the program directly.
 
-### Compile from a string
+### Run from a string (legacy support)
 
 ```bash
-npm start "{ Println(42) }"
+npm start "func main() { Println(42) }"
 ```
 
 ### Build the TypeScript project
@@ -83,25 +89,27 @@ npm run build
 
 This compiles TypeScript to JavaScript in the `dist/` directory.
 
-### Build and copy to parent directory
+## 💡 Examples
+
+All example files are located in the `examples/` directory. You can run any of them with:
 
 ```bash
-npm run build-cp
+npm start examples/<filename>.go
 ```
 
-## 💡 Example
+### Basic Program (`examples/basic_program.go`)
 
-### Input (Go code)
+Demonstrates variables, arithmetic, conditionals, and loops.
 
 ```go
-{
+func main() {
     var x int = 10
     var y int = 20
     var result int = x + y
-    Println(result)
+    Println(result)  // Outputs: 30
     
     if result > 25 {
-        Println(1)
+        Println(1)   // Outputs: 1
     } else {
         Println(0)
     }
@@ -112,13 +120,52 @@ npm run build-cp
 }
 ```
 
-### Output (x86 Assembly)
+### Functions with Parameters (`examples/functions.go`)
 
-The compiler generates x86 assembly code that:
-- Uses `printf` for output
-- Uses `scanf` for input
-- Manages variables on the stack with EBP-relative addressing
-- Implements control flow with labels and jumps
+Shows function declarations with parameters and return values.
+
+```go
+func add(a int, b int) int {
+    return a + b
+}
+
+func greet(name string) {
+    Println("Hello, " + name + "!")
+}
+
+func main() {
+    var sum int = add(10, 20)
+    Println(sum)          // Outputs: 30
+    
+    greet("World")        // Outputs: Hello, World!
+}
+```
+
+### String Operations (`examples/string_operations.go`)
+
+Demonstrates string concatenation.
+
+```go
+func main() {
+    var firstName string = "John"
+    var lastName string = "Doe"
+    var fullName string = firstName + " " + lastName
+    Println(fullName)     // Outputs: John Doe
+}
+```
+
+### User Input (`examples/user_input.go`)
+
+Shows how to read user input with `Scan()`.
+
+```go
+func main() {
+    Println("Enter your age:")
+    var age int = Scan()
+    Println("You are:")
+    Println(age)
+}
+```
 
 ## 🏗️ Architecture
 
@@ -126,7 +173,8 @@ The compiler generates x86 assembly code that:
 
 Performs lexical analysis by:
 - Scanning source code character by character
-- Recognizing keywords, operators, literals, and identifiers
+- Recognizing keywords (`func`, `var`, `return`, `if`, `else`, `for`)
+- Identifying operators, literals, and identifiers
 - Producing a stream of tokens for the parser
 
 ### Parser
@@ -135,7 +183,9 @@ Implements a recursive descent parser that:
 - Follows operator precedence rules
 - Builds an Abstract Syntax Tree (AST)
 - Uses the `readSequential` helper for parsing token sequences
-- Handles expressions, statements, and blocks
+- Handles expressions, statements, blocks, and function declarations
+- Requires a `main()` function as the entry point
+- Automatically inserts a call to `main()` at the end of the program
 
 **Expression Precedence** (lowest to highest):
 1. Boolean OR (`||`)
@@ -144,43 +194,50 @@ Implements a recursive descent parser that:
 4. Additive (`+`, `-`)
 5. Multiplicative (`*`, `/`)
 6. Unary (`+`, `-`, `!`)
-7. Primary (literals, identifiers, parentheses)
+7. Primary (literals, identifiers, parentheses, function calls)
 
 ### AST Nodes
 
 Each node type implements:
-- `evaluate()`: Interprets the node (for testing/debugging)
-- `generate()`: Emits x86 assembly code
+- `evaluate(symbolTable: SymbolTable)`: Interprets the node and returns a typed value
 
 **Node Types**:
 - `BinOp`: Binary operations (arithmetic, logical, comparison)
-- `UnOp`: Unary operations (negation, not)
+- `UnOp`: Unary operations (negation, logical not)
 - `IntVal`, `StringVal`, `BoolVal`: Literal values
 - `Identifier`: Variable references
 - `Assignment`: Variable assignment
-- `VarDec`: Variable declaration
-- `Block`: Statement block
+- `VarDec`: Variable declaration (with optional initialization)
+- `Block`: Statement block (creates nested scope)
 - `If`: Conditional statement
-- `While`: Loop statement
+- `While`: Loop statement (uses `for` keyword Go-style)
 - `Print`: Output statement
 - `Scan`: Input statement
+- `FuncDec`: Function declaration
+- `FuncCall`: Function call with arguments
+- `Return`: Return statement (throws `OnReturn` exception)
 - `NoOp`: Empty statement
 
 ### Symbol Table
 
-Manages variable scope and types:
-- Tracks variable declarations
-- Enforces type safety
-- Assigns stack offsets for code generation
-- Prevents redeclaration errors
+Manages variable and function scope:
+- Tracks variable declarations with types
+- Stores function declarations with parameter lists and return types
+- Enforces type safety at runtime
+- Supports nested scopes through parent-child relationships
+- Prevents redeclaration errors in the same scope
 
-### Code Generator
+When a function is called, a new `SymbolTable` is created with the outer scope as its parent, allowing:
+- Parameters to shadow outer variables
+- Local variables to be isolated
+- Access to outer scope variables when not shadowed
 
-Produces x86 assembly with:
-- EBP-based stack frame management
-- Integration with C standard library (`printf`, `scanf`)
-- Linux syscalls for program exit
-- Unique labels for control flow (loops, conditionals)
+### Return Handling
+
+Function returns are implemented using exceptions:
+- `Return` nodes throw an `OnReturn` exception containing the return value and type
+- `FuncCall` catches `OnReturn` to retrieve the return value
+- Return type checking ensures functions return the declared type (or nothing if no return type is specified)
 
 ## ⚠️ Important Notes
 
@@ -213,36 +270,31 @@ while (this.Tokenizer.getNext().getType() !== TokenType.CLOSE_PAR) {
 }
 ```
 
-## 🔧 Assembly Generation
+### Program Structure Requirements
 
-The generated assembly:
-- Uses the Linux x86 ABI
-- Requires `nasm` for assembly and `gcc` for linking
-- Calls external C functions for I/O
-
-### Running Generated Assembly
-
-```bash
-# Assemble
-nasm -f elf32 output.asm -o output.o
-
-# Link with C library
-gcc -m32 output.o -o output
-
-# Execute
-./output
-```
+All Go programs must:
+1. Contain at least one function declaration
+2. Include a `main()` function with no parameters
+3. Have function declarations at the top level (not nested)
+4. Global variable declarations are supported at the top level
 
 ## 📝 Language Grammar
 
 ```
+Program       ::= (FuncDeclaration | VarDeclaration | "\n")* EOF
+FuncDeclaration::= "func" Identifier "(" Parameters? ")" Type? Block
+Parameters    ::= Parameter ("," Parameter)*
+Parameter     ::= Identifier Type
 Block         ::= "{" "\n" Statement* "}"
-Statement     ::= Assignment | VarDeclaration | Print | If | While | "\n"
+Statement     ::= Assignment | VarDeclaration | Print | If | While | Return | FuncCall | Block | "\n"
 Assignment    ::= Identifier "=" BoolExpr "\n"
 VarDeclaration::= "var" Identifier Type ["=" BoolExpr] "\n"
 Print         ::= "Println" "(" BoolExpr ")" "\n"
+FuncCall      ::= Identifier "(" Arguments? ")" "\n"
+Arguments     ::= BoolExpr ("," BoolExpr)*
 If            ::= "if" BoolExpr Block ["else" Block] "\n"
 While         ::= "for" BoolExpr Block "\n"
+Return        ::= "return" BoolExpr
 BoolExpr      ::= BoolTerm ("||" BoolTerm)*
 BoolTerm      ::= RelExpr ("&&" RelExpr)*
 RelExpr       ::= Expr (("==" | ">" | "<") Expr)?
@@ -251,28 +303,21 @@ Term          ::= Factor (("*" | "/") Factor)*
 Factor        ::= ("+" | "-" | "!") Factor
                 | Int | String | Bool | Identifier
                 | "(" BoolExpr ")"
+                | Identifier "(" Arguments? ")"
                 | "Scan" "(" ")"
+Type          ::= "int" | "string" | "bool"
 ```
 
 ## 🚧 Limitations
 
-This is a simplified compiler that:
+This is a simplified interpreter that:
 - Supports only a subset of Go
-- Generates 32-bit x86 assembly
-- Has a single global scope (no nested scopes)
-- Doesn't support functions (beyond built-ins)
-- Doesn't support arrays, slices, or structs
-- Limited string operations
+- Has limited scope management (function-level and block-level only)
+- Doesn't support arrays, slices, structs, or pointers
+- Doesn't support methods or interfaces
+- Limited string operations (concatenation and comparison only)
+- No type inference - all variables must have explicit types
+- Integer division always rounds down (truncates)
+- `Scan()` only reads integers
+- No package system or imports
 
-## 📄 License
-
-See [LICENSE.md](LICENSE.md) for details.
-
-## 🔖 Versioning
-
-To issue new releases:
-
-```bash
-git tag -a v0.1.1 -m "Message about the release"
-git push origin v0.1.1
-```
